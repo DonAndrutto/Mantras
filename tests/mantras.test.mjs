@@ -14,6 +14,8 @@ test('syllables keep their marks: tsheg, shad, visarga, terma', () => {
   assert.deepEqual(tibetanSyllables('ཨོཾ་ཨཱཿཧཱུྃ་བཛྲ་གུ་རུ་པདྨ་སིདྡྷི་ཧཱུྃ༔'),
     ['ཨོཾ་', 'ཨཱཿ', 'ཧཱུྃ་', 'བཛྲ་', 'གུ་', 'རུ་', 'པདྨ་', 'སིདྡྷི་', 'ཧཱུྃ༔']);
   assert.deepEqual(tibetanSyllables('ཧ་ཧོཿ བྷ་ག་ཝན།'), ['ཧ་', 'ཧོཿ', 'བྷ་', 'ག་', 'ཝན།']);
+  assert.deepEqual(tibetanSyllables('ཨོཾ་མ་ཎི་པདྨེ་ཧཱུྃ'), ['ཨོཾ་', 'མ་', 'ཎི་', 'པདྨེ་', 'ཧཱུྃ']);
+  assert.deepEqual(tibetanSyllables('ༀ་ཨ་མི་དྷེ་ཝ་ཧྲཱི༔'), ['ༀ་', 'ཨ་', 'མི་', 'དྷེ་', 'ཝ་', 'ཧྲཱི༔']);
   assert.deepEqual(phoneticWords(' OM  AH HUNG '), ['OM', 'AH', 'HUNG']);
 });
 

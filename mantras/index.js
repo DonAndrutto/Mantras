@@ -6,8 +6,10 @@ import greenTara from './green-tara.js';
 import whiteTara from './white-tara.js';
 import dzambhala from './dzambhala.js';
 import kurukulle from './kurukulle.js';
+import chenrezig from './chenrezig.js';
+import amitabha from './amitabha.js';
 
-export const MANTRAS = [vajrasattva, vajraGuru, greenTara, whiteTara, dzambhala, kurukulle];
+export const MANTRAS = [vajrasattva, vajraGuru, greenTara, whiteTara, dzambhala, kurukulle, chenrezig, amitabha];
 
 export function findMantra(id) {
   return MANTRAS.find(m => m.id === id) || null;

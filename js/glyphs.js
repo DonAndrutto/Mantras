@@ -63,7 +63,7 @@ function edt1d(grid, offset, stride, length, f, v, z) {
 }
 function edt(grid, w, h) {
   const n = Math.max(w, h);
-  const f = new Float64Array(n), v = new Uint16Array(n), z = new Float64Array(n + 1);
+  const f = new Float32Array(n), v = new Uint16Array(n), z = new Float32Array(n + 1);
   for (let x = 0; x < w; x++) edt1d(grid, x, w, h, f, v, z);
   for (let y = 0; y < h; y++) edt1d(grid, y * w, 1, w, f, v, z);
 }
@@ -72,7 +72,7 @@ function edt(grid, w, h) {
 // outside the letter, using the coverage for sub-pixel accuracy.
 function distanceField(alpha, w, h) {
   const INF = 1e20, n = w * h;
-  const outer = new Float64Array(n), inner = new Float64Array(n);
+  const outer = new Float32Array(n), inner = new Float32Array(n);
   for (let i = 0; i < n; i++) {
     const a = alpha[i];
     if (a >= 0.999) { outer[i] = 0; inner[i] = INF; }
@@ -83,6 +83,56 @@ function distanceField(alpha, w, h) {
   const out = new Float32Array(n);
   for (let i = 0; i < n; i++) out[i] = Math.sqrt(outer[i]) - Math.sqrt(inner[i]);
   return out;
+}
+
+// The wide glow is so soft that it is blurred at half size and drawn back up:
+// a quarter of the work, and no difference to see. The ink (alpha, cw × ch)
+// sits at (cx, cy) in the whole texture (w × h), which the glow fills.
+function wideBlur(alpha, cw, ch, cx, cy, w, h, sigma) {
+  const w2 = Math.ceil(w / 2), h2 = Math.ceil(h / 2);
+  const small = new Float32Array(w2 * h2);
+  for (let y = 0; y < ch; y++) {
+    const row = ((y + cy) >> 1) * w2;
+    for (let x = 0; x < cw; x++) small[row + ((x + cx) >> 1)] += alpha[y * cw + x] * 0.25;
+  }
+  blur(small, w2, h2, sigma / 2);
+  const x0 = new Int32Array(w), x1 = new Int32Array(w), fx = new Float32Array(w);
+  for (let x = 0; x < w; x++) {
+    const sx = Math.min(w2 - 1, Math.max(0, (x + 0.5) / 2 - 0.5));
+    x0[x] = Math.floor(sx); x1[x] = Math.min(w2 - 1, x0[x] + 1); fx[x] = sx - x0[x];
+  }
+  const out = new Float32Array(w * h);
+  for (let y = 0; y < h; y++) {
+    const sy = Math.min(h2 - 1, Math.max(0, (y + 0.5) / 2 - 0.5)), r0 = Math.floor(sy) * w2;
+    const r1 = Math.min(h2 - 1, Math.floor(sy) + 1) * w2, fy = sy - Math.floor(sy);
+    for (let x = 0, o = y * w; x < w; x++) {
+      const a = small[r0 + x0[x]] + (small[r0 + x1[x]] - small[r0 + x0[x]]) * fx[x];
+      const b = small[r1 + x0[x]] + (small[r1 + x1[x]] - small[r1 + x0[x]]) * fx[x];
+      out[o + x] = a + (b - a) * fy;
+    }
+  }
+  return out;
+}
+
+// Square roots for the glow channels, looked up rather than computed per texel.
+const ROOT_STEPS = 16384;
+const ROOT = Uint8Array.from({ length: ROOT_STEPS + 1 }, (_, i) => Math.round(255 * Math.sqrt(i / ROOT_STEPS)));
+const root = v => ROOT[v <= 0 ? 0 : v >= 1 ? ROOT_STEPS : (v * ROOT_STEPS + 0.5) | 0];
+
+// Built glyphs are kept a while after their ring is gone, so changing the
+// script or the garland's repeats, or coming back to a mantra, does not draw
+// them again. Those no ring uses are let go, oldest first, beyond this many texels.
+const cache = new Map();   // key → { glyph, users, texels }
+const IDLE_TEXELS = 8e6;
+function trim() {
+  let idle = 0;
+  for (const e of cache.values()) if (!e.users) idle += e.texels;
+  for (const [k, e] of cache) {
+    if (idle <= IDLE_TEXELS) break;
+    if (e.users) continue;
+    e.glyph.texture.dispose(); e.glyph.geometry.dispose();
+    cache.delete(k); idle -= e.texels;
+  }
 }
 
 // A set shares one vertical frame, so every syllable in a ring hangs from
@@ -108,8 +158,17 @@ export function makeGlyphSet(tokens, { script = 'tibetan', px = 96, radius = 0.2
   const near = 0.07 * px, wide = Math.max(0.08, radius) * 0.75 * px;
   const pad = Math.ceil(Math.max(SPREAD * px, 3.4 * wide)) + 2;
 
-  const glyphs = new Map();
+  // the outline's reach and the near glow's, round the ink: all the work but
+  // the wide glow is done within that, not over the whole texture
+  const reach = Math.ceil(Math.max(SPREAD * px, 3.4 * near)) + 2;
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const glyphs = new Map(), keys = [];
   for (const t of unique) {
+    const key = [font, radius, ascent, descent, t].join('|');
+    keys.push(key);
+    const hit = cache.get(key);
+    if (hit) { cache.delete(key); cache.set(key, hit); hit.users++; glyphs.set(t, hit.glyph); continue; }
     const m = metrics.get(t);
     const left = Math.max(0, m.actualBoundingBoxLeft ?? 0);
     const right = Math.max(m.width, m.actualBoundingBoxRight ?? m.width);
@@ -117,52 +176,59 @@ export function makeGlyphSet(tokens, { script = 'tibetan', px = 96, radius = 0.2
     const h = Math.ceil(pad * 2 + ascent + descent);
     const ox = pad + left, baseline = pad + ascent;
 
-    const canvas = document.createElement('canvas');
-    canvas.width = w; canvas.height = h;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const inkL = m.actualBoundingBoxLeft ?? 0, inkR = m.actualBoundingBoxRight ?? m.width;
+    const cx = Math.max(0, Math.floor(ox - inkL) - reach);
+    const cy = Math.max(0, Math.floor(baseline - (m.actualBoundingBoxAscent ?? ascent)) - reach);
+    const cw = Math.min(w, Math.ceil(ox + inkR) + reach) - cx;
+    const ch = Math.min(h, Math.ceil(baseline + (m.actualBoundingBoxDescent ?? descent)) + reach) - cy;
+
+    canvas.width = cw; canvas.height = ch;          // also clears it
     ctx.font = font;
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = '#fff';
-    ctx.fillText(t, ox, baseline);
-    const rgba = ctx.getImageData(0, 0, w, h).data;
-    const alpha = new Float32Array(w * h);
+    ctx.fillText(t, ox - cx, baseline - cy);
+    const rgba = ctx.getImageData(0, 0, cw, ch).data;
+    const alpha = new Float32Array(cw * ch);
     for (let i = 0; i < alpha.length; i++) alpha[i] = rgba[i * 4 + 3] / 255;
-    const dist = distanceField(alpha, w, h);
-
-    const nearGlow = blur(Float32Array.from(alpha), w, h, near);
-    const wideGlow = blur(Float32Array.from(alpha), w, h, wide);
+    const dist = distanceField(alpha, cw, ch);
+    const nearGlow = blur(Float32Array.from(alpha), cw, ch, near);
+    const wideGlow = wideBlur(alpha, cw, ch, cx, cy, w, h, wide);
 
     // red: 0.5 on the outline, 0 at SPREAD outside it; green, blue: the glows,
     // as square roots so their faint reach keeps its steps; rows bottom-up
-    const data = new Uint8Array(w * h * 4);
-    const span = SPREAD * px;
-    const enc = v => Math.round(255 * Math.sqrt(Math.max(0, Math.min(1, v))));
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      const i = y * w + x, o = ((h - 1 - y) * w + x) * 4;
-      data[o] = Math.max(0, Math.min(255, Math.round((0.5 - dist[i] / (2 * span)) * 255)));
-      data[o + 1] = enc(nearGlow[i] * 1.6);
-      data[o + 2] = enc(wideGlow[i] * 2.2);
+    // (a Uint8ClampedArray rounds and clamps the red as it is written)
+    const data = new Uint8ClampedArray(w * h * 4);
+    for (let y = 0; y < h; y++) for (let x = 0, i = y * w, o = (h - 1 - y) * w * 4; x < w; x++, i++, o += 4) {
+      data[o + 2] = root(wideGlow[i] * 2.2);
       data[o + 3] = 255;
     }
-    const texture = new THREE.DataTexture(data, w, h, THREE.RGBAFormat, THREE.UnsignedByteType);
+    const k = 255 / (2 * SPREAD * px);
+    for (let y = 0; y < ch; y++) for (let x = 0, i = y * cw, o = ((h - 1 - y - cy) * w + cx) * 4; x < cw; x++, i++, o += 4) {
+      data[o] = 127.5 - dist[i] * k;
+      data[o + 1] = root(nearGlow[i] * 1.6);
+    }
+    const texture = new THREE.DataTexture(new Uint8Array(data.buffer), w, h, THREE.RGBAFormat, THREE.UnsignedByteType);
     texture.minFilter = THREE.LinearMipmapLinearFilter;
     texture.magFilter = THREE.LinearFilter;
     texture.generateMipmaps = true;
     texture.unpackAlignment = 1;
     texture.needsUpdate = true;
 
-    // The anchor is the middle of the advance box and of the em box, as a
-    // CSS line-height:1 box centred with translate(-50%,-50%) would be.
-    const ax = ox + m.width / 2;
+    // The anchor is the middle of the ink, across, so the air between two
+    // syllables is the same on both sides whatever their side bearings; and
+    // the middle of the em box, up and down, so a ring hangs from one line.
+    const ax = ox + (inkR - inkL) / 2;
     const ay = baseline - (emA - emD) / 2;
     const geometry = new THREE.PlaneGeometry(w / px, h / px);
     geometry.translate((w / 2 - ax) / px, -(h / 2 - ay) / px, 0);
 
-    glyphs.set(t, { texture, geometry, advance: m.width / px, height: (ascent + descent) / px, below: (baseline + descent - ay) / px });
+    const glyph = { texture, geometry, width: Math.max(0.05 * px, inkL + inkR) / px, height: (ascent + descent) / px, below: (baseline + descent - ay) / px };
+    cache.set(key, { glyph, users: 1, texels: w * h });
+    glyphs.set(t, glyph);
   }
   return {
     get: t => glyphs.get(t),
-    dispose() { for (const g of glyphs.values()) { g.texture.dispose(); g.geometry.dispose(); } },
+    dispose() { for (const k of keys) { const e = cache.get(k); if (e) e.users--; } trim(); },
   };
 }
 

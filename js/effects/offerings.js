@@ -66,16 +66,18 @@ export function createOfferings({ stage }) {
     on: false, kind: 0, t: 0, dur: 1, from: new THREE.Vector3(), to: new THREE.Vector3(), arc: new THREE.Vector3(),
     target: -2, size: 0.03, color: colors[0],
   }));
-  let carry = 0, elapsed = 0, wasOn = false;
+  let carry = 0, elapsed = 0, wasOn = false, alive = 0, free = 0;
   const status = { phase: 0, progress: 0, on: false };
   const _b = new THREE.Vector3(), _p = new THREE.Vector3();
 
   // a point of the seed or a turning syllable, now
-  const source = i => (i < 0 ? stage.seed.position : stage.sources()[i] || stage.seed.position);
-  const pick = () => (Math.random() < 0.35 ? -1 : (Math.random() * stage.sources().length) | 0);
+  const sources = stage.sources();
+  const source = i => (i < 0 ? stage.seed.position : sources[i] || stage.seed.position);
+  const pick = () => (Math.random() < 0.35 ? -1 : (Math.random() * sources.length) | 0);
 
   function spawn(kind, reach) {
-    const l = lights.find(x => !x.on);
+    let l = null;
+    for (let n = 0; n < MAX && !l; n++) { const c = lights[(free + n) % MAX]; if (!c.on) { l = c; free = (free + n + 1) % MAX; } }
     if (!l) return;
     l.on = true; l.kind = kind; l.t = 0;
     l.size = (0.025 + Math.random() * 0.035) * reach;
@@ -128,26 +130,29 @@ export function createOfferings({ stage }) {
         while (carry >= 1) { carry -= 1; spawn(phase, reach); }
       }
 
-      let alive = 0;
-      for (let i = 0; i < MAX; i++) {
-        const l = lights[i];
-        if (l.on) { l.t += dt; if (l.t >= l.dur) l.on = false; }
-        for (let j = 0; j < TRAIL; j++) {
-          const k = i * TRAIL + j;
-          if (!l.on) { alpha[k] = 0; continue; }
-          const u = l.t / l.dur - j * STEP;
-          if (u <= 0) { alpha[k] = 0; continue; }
-          at(l, u, _p);
-          pos.set([_p.x, _p.y, _p.z], k * 3);
-          const life = Math.min(1, u / 0.12) * Math.min(1, (1 - u) / (l.kind === 1 ? 0.08 : 0.25));
-          alpha[k] = 0.9 * life * (1 - j / TRAIL);
-          size[k] = l.size * (1 - j * 0.1);
-          tint.set([l.color.x, l.color.y, l.color.z], k * 3);
+      // nothing to move and nothing to send while every light is out
+      if (alive || on) {
+        alive = 0;
+        for (let i = 0; i < MAX; i++) {
+          const l = lights[i];
+          if (l.on) { l.t += dt; if (l.t >= l.dur) l.on = false; }
+          if (!l.on) { alpha.fill(0, i * TRAIL, (i + 1) * TRAIL); continue; }
+          alive++;
+          for (let j = 0; j < TRAIL; j++) {
+            const k = i * TRAIL + j;
+            const u = l.t / l.dur - j * STEP;
+            if (u <= 0) { alpha[k] = 0; continue; }
+            at(l, u, _p);
+            pos[k * 3] = _p.x; pos[k * 3 + 1] = _p.y; pos[k * 3 + 2] = _p.z;
+            const life = Math.min(1, u / 0.12) * Math.min(1, (1 - u) / (l.kind === 1 ? 0.08 : 0.25));
+            alpha[k] = 0.9 * life * (1 - j / TRAIL);
+            size[k] = l.size * (1 - j * 0.1);
+            tint[k * 3] = l.color.x; tint[k * 3 + 1] = l.color.y; tint[k * 3 + 2] = l.color.z;
+          }
         }
-        if (l.on) alive++;
+        for (const a of ['position', 'size', 'alpha', 'tint']) geometry.attributes[a].needsUpdate = true;
       }
       points.visible = alive > 0;
-      for (const a of ['position', 'size', 'alpha', 'tint']) geometry.attributes[a].needsUpdate = true;
       // the seed brightens as blessings are absorbed into it
       stage.absorb = on && phase === 1 ? Math.min(1, status.progress * 4) : Math.max(0, (stage.absorb ?? 0) - dt);
     },
