@@ -25,6 +25,8 @@ export function defaultsFor(mantra) {
     'seat.lotus': !!mantra.seats?.lotus,
     'seat.sun': !!mantra.seats?.sun,
     'seat.moon': !!mantra.seats?.moon,
+    'seat.petals': mantra.seats?.petals ?? 16,   // 4 | 8 | 16 | 1000
+    join: '',                          // other mantras in the same garland: 'id' or 'id/variant', comma-separated
     readout: false,                    // the front syllable's phonetics at the side
     rays: 0,
     background: 'night',               // 'night' | 'black' | 'stars'

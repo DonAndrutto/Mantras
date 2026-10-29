@@ -3,17 +3,25 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, access } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { MANTRAS, withVariant } from '../mantras/index.js';
+import { MANTRAS, withVariant, allMantraKeys, mantraByKey } from '../mantras/index.js';
 import { tibetanSyllables, phoneticWords, ringTokens } from '../js/tibetan.js';
 
 const root = new URL('../', import.meta.url);
 
-test('syllables split on tsheg and shad, keeping marks when asked', () => {
-  assert.deepEqual(tibetanSyllables('ཨོཾ་བཛྲ་སཏྭ་ཨཱཿ'), ['ཨོཾ', 'བཛྲ', 'སཏྭ', 'ཨཱཿ']);
-  assert.deepEqual(tibetanSyllables('ཀུལླེ་ཧྲཱིཿསྭཱ་ཧཱ།'), ['ཀུལླེ', 'ཧྲཱིཿ', 'སྭཱ', 'ཧཱ']);
-  assert.deepEqual(tibetanSyllables('ཨོཾ་ཨཱཿཧཱུྃ་བཛྲ་གུ་རུ་པདྨ་སིདྡྷི་ཧཱུྃ༔', { keepMarks: true }),
+test('syllables keep their marks: tsheg, shad, visarga, terma', () => {
+  assert.deepEqual(tibetanSyllables('ཨོཾ་བཛྲ་སཏྭ་ཨཱཿ'), ['ཨོཾ་', 'བཛྲ་', 'སཏྭ་', 'ཨཱཿ']);
+  assert.deepEqual(tibetanSyllables('ཀུལླེ་ཧྲཱིཿསྭཱ་ཧཱ།'), ['ཀུལླེ་', 'ཧྲཱིཿ', 'སྭཱ་', 'ཧཱ།']);
+  assert.deepEqual(tibetanSyllables('ཨོཾ་ཨཱཿཧཱུྃ་བཛྲ་གུ་རུ་པདྨ་སིདྡྷི་ཧཱུྃ༔'),
     ['ཨོཾ་', 'ཨཱཿ', 'ཧཱུྃ་', 'བཛྲ་', 'གུ་', 'རུ་', 'པདྨ་', 'སིདྡྷི་', 'ཧཱུྃ༔']);
+  assert.deepEqual(tibetanSyllables('ཧ་ཧོཿ བྷ་ག་ཝན།'), ['ཧ་', 'ཧོཿ', 'བྷ་', 'ག་', 'ཝན།']);
   assert.deepEqual(phoneticWords(' OM  AH HUNG '), ['OM', 'AH', 'HUNG']);
+});
+
+test('every mantra and variant can join a garland by its key', () => {
+  const keys = allMantraKeys().map(k => k.key);
+  assert.ok(keys.includes('kurukulle/accomplishment') && keys.includes('green-tara'));
+  for (const k of keys) assert.ok(mantraByKey(k)?.rings.length, k);
+  assert.equal(mantraByKey('nonsense'), null);
 });
 
 // every mantra, and every variant of one, as the page sees it

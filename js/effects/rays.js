@@ -1,38 +1,31 @@
 // Light rays from the seed, turning slowly behind it. Shared by every mantra;
-// they take the mantra's halo colour.
+// they take the mantra's halo colour. Computed per pixel, so they stay smooth
+// however near the camera comes.
 import * as THREE from 'three';
+import { srgb } from '../glyphs.js';
 
-function raysTexture(size = 512, count = 28) {
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  const ctx = c.getContext('2d');
-  const r = size / 2;
-  ctx.translate(r, r);
-  for (let i = 0; i < count; i++) {
-    const a = (i / count) * Math.PI * 2;
-    const w = (i % 2 ? 0.035 : 0.06) * Math.PI;
-    const len = r * (i % 2 ? 0.78 : 1);
-    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, len);
-    g.addColorStop(0, 'rgba(255,255,255,0.9)');
-    g.addColorStop(0.25, 'rgba(255,255,255,0.35)');
-    g.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.arc(0, 0, len, a - w / 2, a + w / 2);
-    ctx.closePath();
-    ctx.fill();
-  }
-  const t = new THREE.CanvasTexture(c);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
+const FRAG = /* glsl */`
+  uniform vec3 color; uniform float opacity, turn;
+  varying vec2 vUv;
+  void main() {
+    vec2 p = (vUv - 0.5) * 2.0;
+    float r = length(p);
+    float a = atan(p.y, p.x) + turn;
+    float longRays = pow(max(0.0, cos(a * 14.0)), 28.0) * exp(-r * 2.0);
+    float shortRays = pow(max(0.0, -cos(a * 14.0)), 36.0) * exp(-r * 3.6);
+    float core = exp(-r * r * 9.0) * 0.5;
+    float v = (longRays + 0.7 * shortRays + core) * (1.0 - smoothstep(0.75, 1.0, r)) * opacity;
+    gl_FragColor = vec4(color * v, 0.0);
+  }`;
 
 export function createRays({ stage }) {
-  const texture = raysTexture();
-  const material = new THREE.MeshBasicMaterial({
-    map: texture, color: new THREE.Color(stage.pal.halo).lerp(new THREE.Color(stage.pal.hi), 0.35),
-    transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  const c = new THREE.Color(stage.pal.halo).lerp(new THREE.Color(stage.pal.hi), 0.35);
+  const material = new THREE.ShaderMaterial({
+    uniforms: { color: { value: srgb(`#${c.getHexString()}`) }, opacity: { value: 0 }, turn: { value: 0 } },
+    vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: FRAG,
+    transparent: true, depthWrite: false,
+    blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor,
   });
   const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), material);
   mesh.renderOrder = -1;
@@ -43,11 +36,11 @@ export function createRays({ stage }) {
       mesh.visible = amount > 0;
       if (!mesh.visible) return;
       camera.getWorldQuaternion(mesh.quaternion);
-      mesh.rotateZ(time * 0.05);
       mesh.position.copy(stage.seed.position);
       mesh.scale.setScalar((1.2 + 1.6 * amount) * Math.max(1, settings.ringScale));
-      material.opacity = amount * (0.22 + 0.08 * (stage.breath ?? 0.5));
+      material.uniforms.turn.value = time * 0.05;
+      material.uniforms.opacity.value = amount * (0.55 + 0.2 * (stage.breath ?? 0.5));
     },
-    dispose() { mesh.removeFromParent(); mesh.geometry.dispose(); material.dispose(); texture.dispose(); },
+    dispose() { mesh.removeFromParent(); mesh.geometry.dispose(); material.dispose(); },
   };
 }

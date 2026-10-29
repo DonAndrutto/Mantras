@@ -31,10 +31,8 @@ export function fixedPose({ mantra, angle, aspect, extent }) {
     probe(x, -extent.half, z);
   }
   probe(0, extent.seedTop, 0);
-  if (extent.low !== null) for (let i = 0; i < 24; i++) {     // the seat, when there is one
-    const a = (i / 24) * Math.PI * 2;
-    probe(Math.sin(a) * extent.radius, extent.low, Math.cos(a) * extent.radius);
-  }
+  // the seat is left out: a lotus as wide as the garland may open past the
+  // screen's edges, so the garland and seed keep their size
   const fillW = mantra.view.fill ?? 0.9, fillV = 0.74;
   const tanV = Math.max(ty / fillV, tx / (fillW * aspect));
   return { eye, fov: (2 * Math.atan(tanV) * 180) / Math.PI };
