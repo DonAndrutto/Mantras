@@ -1,7 +1,7 @@
 // The frame every mantra opens in: the renderer and its loop, the clock that
 // turns the garland, the counter, the bars and the sheets.
 import * as THREE from 'three';
-import { MANTRAS, findMantra, withVariant, mantraByKey } from '../mantras/index.js';
+import { MANTRAS, findMantra, withVariant } from '../mantras/index.js';
 import { loadSettings, saveSettings, defaultsFor, loadCount, saveCount, lastMantra, rememberMantra, loadVariant, saveVariant, PERIOD_MIN, PERIOD_MAX } from './settings.js';
 import { loadFonts } from './glyphs.js';
 import { Stage } from './stage.js';
@@ -9,6 +9,7 @@ import { fixedPose, createControls } from './camera.js';
 import { vrSupported, enterVR } from './xr.js';
 import { createNectar } from './effects/nectar.js';
 import { createRays } from './effects/rays.js';
+import { createOfferings, PHASES } from './effects/offerings.js';
 import { createStars } from './effects/stars.js';
 import { buildSettings, buildPicker, holdRepeat, roundPeriod, formatPeriod } from './ui.js';
 
@@ -30,8 +31,8 @@ const controls = createControls(camera, canvas);
 const stars = createStars({ parent: world });
 
 // ── state ────────────────────────────────────────────────────────────────
-let base = null, mantra = null, settings = null, stage = null, effects = [], ui = null, frontKey = '';
-let rot = 0, maxRound = 0, correction = 0, total = 0, paused = false;
+let base = null, mantra = null, settings = null, stage = null, effects = [], ui = null, frontKey = '', offerings = null, phaseKey = '';
+let rot = 0, maxRecited = 0, correction = 0, total = 0, paused = false;
 let poseDirty = true, snap = true, inVR = false;
 const taps = [];
 
@@ -44,7 +45,8 @@ const ctx = {
     if (settings[key] === value) return;
     settings[key] = value;
     saveSettings(mantra, settings);
-    if (key === 'script' || key === 'join') buildStage();
+    if (key === 'script' || key === 'repeat') buildStage();
+    if (key === 'repeat') maxRecited = Math.floor((rot * value) / TAU + 1e-9);
     if (key === 'angle' || key === 'camera') { poseDirty = true; snap = settings.camera === 'fixed'; controls.enabled = settings.camera === 'free' && !inVR; }
     applyLook();
     refreshUI();
@@ -76,10 +78,10 @@ const ctx = {
 function buildStage() {
   for (const fx of effects) fx.dispose();
   stage?.dispose();
-  const joined = settings.join.split(',').filter(Boolean).map(mantraByKey).filter(Boolean);
-  stage = new Stage({ mantra, settings, joined });
+  stage = new Stage({ mantra, settings });
   world.add(stage.group);
-  effects = [createRays({ stage })];
+  offerings = createOfferings({ stage });
+  effects = [createRays({ stage }), offerings];
   for (const fx of mantra.effects || []) if (EFFECTS[fx.id]) effects.push(EFFECTS[fx.id]({ stage, mantra }));
   poseDirty = true;
 }
@@ -92,7 +94,7 @@ function openMantra(id, force = false) {
   rememberMantra(mantra.id);
   settings = loadSettings(mantra);
   total = loadCount(mantra);
-  rot = 0; maxRound = 0; correction = 0; taps.length = 0;
+  rot = 0; maxRecited = 0; correction = 0; taps.length = 0;
   controls.enabled = settings.camera === 'free' && !inVR;
   buildStage();
   snap = true;
@@ -144,12 +146,14 @@ function tap() {
   taps.push(now);
   if (taps.length > 6) taps.shift();
   // bring the first syllable to the front, gently
-  const frac = rot / TAU - Math.round(rot / TAU);
-  correction = -frac * TAU;
+  // (the start of whichever recitation is nearest, when the garland holds several)
+  const unit = TAU / settings.repeat;
+  const frac = rot / unit - Math.round(rot / unit);
+  correction = -frac * unit;
   if (taps.length >= 2) {
     const span = (taps[taps.length - 1] - taps[0]) / (taps.length - 1);
     if (span >= PERIOD_MIN) setPeriod(span);
-    ctx.onTap?.(`From your last ${taps.length} taps: ${formatPeriod(settings.period)} a round.`);
+    ctx.onTap?.(`From your last ${taps.length} taps: ${formatPeriod(settings.period)} a recitation.`);
   } else {
     ctx.onTap?.('Synced. Tap again at the next start to set the pace.');
   }
@@ -168,15 +172,16 @@ function addCount(d) {
 }
 
 function advance(dt) {
-  if (!paused) rot += (TAU * dt) / settings.period;
+  // the period is one recitation; a garland holding the mantra n times turns once in n of them
+  if (!paused) rot += (TAU * dt) / (settings.period * settings.repeat);
   if (correction) {
     const step = Math.abs(correction) < 1e-4 ? correction : correction * Math.min(1, dt * 5);
     rot += step; correction -= step;
   }
-  const round = Math.floor(rot / TAU + 1e-9);
-  if (round > maxRound) {
-    if (settings.countMode === 'auto' && !paused) addCount(round - maxRound);
-    maxRound = round;
+  const recited = Math.floor((rot * settings.repeat) / TAU + 1e-9);
+  if (recited > maxRecited) {
+    if (settings.countMode === 'auto' && !paused) addCount(recited - maxRecited);
+    maxRecited = recited;
   }
 }
 
@@ -211,15 +216,17 @@ let lastTime = null, clock = 0;
 const _size = new THREE.Vector2();
 function frame(t) {
   const now = t / 1000;
-  const dt = lastTime === null ? 0 : Math.min(0.1, Math.max(0, now - lastTime));
+  const realDt = lastTime === null ? 0 : Math.min(1, Math.max(0, now - lastTime));   // for clocks that keep real time
+  const dt = Math.min(0.1, realDt);
   lastTime = now; clock += dt;
   advance(dt);
   placeCamera();
   stage.update({ rot, time: clock, camera, settings });
   renderer.getDrawingBufferSize(_size);
-  for (const fx of effects) fx.update({ dt, time: clock, camera, settings, viewportHeight: _size.y, fov: camera.fov });
+  for (const fx of effects) fx.update({ dt, realDt, time: clock, camera, settings, viewportHeight: _size.y, fov: camera.fov });
   stars.update(dt);
   if (settings.readout) showFront();
+  showPhase();
   $('bg').style.setProperty('--pulse', (0.5 + 0.2 * Math.sin(2 * rot)).toFixed(3));
   renderer.render(scene, camera);
 }
@@ -232,6 +239,22 @@ function showFront() {
   frontKey = k;
   $('readTib').textContent = f?.tibetan || '';
   $('readPho').textContent = f?.phonetics || '';
+}
+
+// Which phase the offering lights are in, under the top bar.
+function showPhase() {
+  const st = offerings?.status;
+  const chip = $('phase');
+  if (!st?.on) { if (!chip.hidden) chip.hidden = true; phaseKey = ''; return; }
+  chip.hidden = false;
+  const p = PHASES[st.phase];
+  if (phaseKey !== p.id) {
+    phaseKey = p.id;
+    $('phaseName').textContent = p.label;
+    $('phaseHint').textContent = p.hint;
+    chip.dataset.phase = p.id;
+  }
+  $('phaseBar').style.transform = `scaleX(${st.progress.toFixed(4)})`;
 }
 
 // ── chrome: bars, sheets, gestures, keys ─────────────────────────────────

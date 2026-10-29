@@ -20,8 +20,9 @@ angle, in the fixed view and in the free camera.
 
 ## Using it
 
-- **Speed** is in *seconds per round*, and one round is one recitation, so the syllable
-  passing the front is the one being recited. Set it with the slider (0.5–180 s), type it
+- **Speed** is in *seconds per recitation*; one round of the garland is one recitation (or two
+  or three, when it holds the mantra more than once), so the syllable passing the front is the
+  one being recited. Set it with the slider (0.5–180 s), type it
   (to 0.01 s), step it by ±0.05 or ±1 s (hold to repeat), or **Tap** at the start of each
   recitation: the garland takes the pace of your last taps and brings the first syllable
   to the front.
@@ -39,8 +40,12 @@ angle, in the fixed view and in the free camera.
 - **Seat**: lotus, sun disc and moon disc, any of them, stacked in that order. The discs are
   paper thin and a little wider than the garland, which turns above them within their rim;
   the lotus has 4, 8, 16 or a thousand petals. The seed hovers just above the uppermost seat.
-- **Garland**: up to two more mantras can follow this one in the same garland (Settings →
-  Garland); one round is then one recitation of all of them.
+- **Garland**: the mantra once, twice or three times round the same garland (Settings →
+  Garland); held more than once it runs closer together. The speed stays per recitation, and
+  every recitation is counted.
+- **Offering lights**: lights rise from the seed and syllables to the buddhas, return and
+  dissolve into the seed and the mantra, then go down to beings in saṃsāra — round and round,
+  each phase 10 s, 30 s or a minute. The phase shows under the top bar.
 - **Syllables keep their marks**: tsheg, shad, visarga and terma marks stay with the syllable
   they are written with.
 - **Light & effects**: glow (×0–×3, fine steps; drawn from the letter's own outline, so it stays
@@ -82,7 +87,7 @@ mantra's `effects` list and registered in `js/app.js`.
 | `js/ui.js` | The settings sheet and the mantra menu. |
 | `js/settings.js` | Defaults from the mantra file; the viewer's changes and counts, per mantra. |
 | `js/tibetan.js` | Splitting Tibetan into syllables, phonetics into words. |
-| `js/effects/` | `nectar.js` (Vajrasattva), `rays.js`, `stars.js`. |
+| `js/effects/` | `nectar.js` (Vajrasattva), `offerings.js` (offering lights), `rays.js`, `stars.js`. |
 | `mantras/` | One file per mantra, `shared.js` (palettes, the common ring), and the list. |
 | `design/` | The original Claude Design sources. |
 | `vendor/three@0.184.0/` | three.js, byte for byte as in the World System repository (same integrity hashes). |

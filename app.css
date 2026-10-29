@@ -111,14 +111,6 @@ body.sheet-open #scrim { opacity: 1; pointer-events: auto; }
 #picker { left: 0; right: auto; top: 0; bottom: 0; width: min(360px, 88vw); max-height: none; border-top: 0;
   border-right: 1px solid var(--line); border-radius: 0 16px 16px 0; padding-top: var(--safe-t); padding-left: var(--safe-l); }
 @media (min-width: 760px) { #picker { border-left: 0; border-radius: 0; } }
-.joins { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
-.join { display: flex; align-items: center; gap: 10px; min-height: 38px; padding: 6px 10px; border-radius: 8px; cursor: pointer;
-  border: 1px solid var(--line); background: transparent; color: var(--muted); font-size: 13px; text-align: left; }
-.join .n { width: 20px; height: 20px; border-radius: 10px; flex: none; display: grid; place-items: center; font-size: 11px;
-  border: 1px solid var(--line); color: var(--text); }
-.join[aria-pressed="true"] { color: var(--text); border-color: color-mix(in srgb, var(--accent) 55%, transparent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent); }
-.join[aria-pressed="true"] .n { background: var(--accent); color: var(--bg2); border-color: var(--accent); }
 .sheet-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 6px 20px; }
 .sheet-head h2 { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
 .sheet-close { width: 40px; height: 40px; font-size: 24px; }
@@ -186,3 +178,16 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
   .speed .icon { width: 34px; }
 }
 @media (prefers-reduced-motion: reduce) { .chrome, #toast, #scrim { transition: none; } }
+
+/* the phase of the offering lights, under the top bar */
+.phase { position: fixed; z-index: 9; left: 50%; top: calc(66px + var(--safe-t)); transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 14px 8px; min-width: 200px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 12px; pointer-events: none; text-align: center; }
+.phase[hidden] { display: none; }
+#phaseName { font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+#phaseName::before { content: '↑ '; }
+.phase[data-phase="return"] #phaseName::before, .phase[data-phase="beings"] #phaseName::before { content: '↓ '; }
+#phaseHint { font-size: 12px; color: var(--muted); }
+.phase-track { width: 100%; height: 2px; margin-top: 4px; background: color-mix(in srgb, var(--text) 14%, transparent); border-radius: 1px; overflow: hidden; }
+#phaseBar { display: block; height: 100%; background: var(--accent); transform-origin: 0 50%; transform: scaleX(0); }
+body.bare .phase { opacity: 0.7; }

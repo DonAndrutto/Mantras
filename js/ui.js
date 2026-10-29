@@ -4,7 +4,6 @@
 import { PERIOD_MIN, PERIOD_MAX } from './settings.js';
 import { tibetanSyllables } from './tibetan.js';
 import { SEATS, PETALS } from './seats.js';
-import { allMantraKeys } from '../mantras/index.js';
 
 export function el(tag, attrs = {}, ...children) {
   const n = document.createElement(tag);
@@ -78,9 +77,9 @@ export function buildSettings(root, ctx) {
 
   // ── motion ─────────────────────────────────────────────────────────────
   const periodOut = el('input', { type: 'number', class: 'num', min: PERIOD_MIN, max: PERIOD_MAX, step: '0.01',
-    inputmode: 'decimal', 'aria-label': 'Seconds per round',
+    inputmode: 'decimal', 'aria-label': 'Seconds per recitation',
     onchange: e => { const v = Number(e.target.value); if (v > 0) ctx.set('period', roundPeriod(v)); } });
-  const periodSlider = el('input', { type: 'range', min: 0, max: 1000, step: 1, 'aria-label': 'Seconds per round',
+  const periodSlider = el('input', { type: 'range', min: 0, max: 1000, step: 1, 'aria-label': 'Seconds per recitation',
     oninput: e => ctx.set('period', roundPeriod(sliderToPeriod(Number(e.target.value)))) });
   const fine = (delta, text) => {
     const b = el('button', { type: 'button', class: 'step', text, 'aria-label': `${delta > 0 ? 'Slower' : 'Faster'} by ${Math.abs(delta)} s` });
@@ -96,12 +95,12 @@ export function buildSettings(root, ctx) {
   sync(s => {
     if (document.activeElement !== periodOut) periodOut.value = s.period.toFixed(2);
     periodSlider.value = periodToSlider(s.period);
-    pace.textContent = `${(60 / s.period).toFixed(2)} rounds a minute · ${(s.period / syllableCount).toFixed(3)} s a syllable`;
+    pace.textContent = `${(60 / s.period).toFixed(2)} recitations a minute · ${(s.period / syllableCount).toFixed(3)} s a syllable`;
   });
 
   const motion = section('Motion',
     el('div', { class: 'row' },
-      el('div', { class: 'row-head' }, el('span', { class: 'label', text: 'Seconds per round' }), periodOut),
+      el('div', { class: 'row-head' }, el('span', { class: 'label', text: 'Seconds per recitation' }), periodOut),
       periodSlider,
       el('div', { class: 'steps' }, fine(-1, '−1'), fine(-0.05, '−0.05'), fine(0.05, '+0.05'), fine(1, '+1')),
       pace),
@@ -128,28 +127,9 @@ export function buildSettings(root, ctx) {
     segmented('seat.petals', 'Lotus petals', PETALS.map(n => [n, n === 1000 ? 'Thousand' : String(n)])),
     el('div', { class: 'hint', text: 'From the bottom: lotus, sun, moon. The discs are a little wider than the garland, which turns above them; the seed hovers just above the uppermost.' }),
   );
-  // other mantras sharing this garland, in the order chosen (up to two)
-  const own = mantra.variant ? `${mantra.id}/${mantra.variant}` : mantra.id;
-  const choices = allMantraKeys().filter(c => c.key !== own);
-  const joinButtons = choices.map(c => el('button', {
-    type: 'button', class: 'join', 'aria-pressed': 'false',
-    onclick: () => {
-      const now = ctx.settings.join.split(',').filter(Boolean);
-      const next = now.includes(c.key) ? now.filter(k => k !== c.key) : [...now, c.key].slice(-2);
-      ctx.set('join', next.join(','));
-    },
-  }, el('span', { class: 'n' }), el('span', { text: c.label })));
-  sync(s => {
-    const now = s.join.split(',').filter(Boolean);
-    choices.forEach((c, i) => {
-      const at = now.indexOf(c.key);
-      joinButtons[i].setAttribute('aria-pressed', String(at >= 0));
-      joinButtons[i].firstChild.textContent = at >= 0 ? String(at + 2) : '';
-    });
-  });
   const garland = section('Garland',
-    el('div', { class: 'hint', text: `Up to two more mantras can follow ${mantra.name} in the same garland. One round is then one recitation of all of them.` }),
-    el('div', { class: 'joins' }, joinButtons),
+    segmented('repeat', 'The mantra in the garland', [[1, 'Once'], [2, 'Twice'], [3, 'Three times']]),
+    el('div', { class: 'hint', text: 'Held more than once, the mantra runs closer together round the same garland. The speed stays per recitation; a round counts each one.' }),
   );
   const script = section('Script',
     segmented('script', 'Syllables on the ring', [['tibetan', 'བོད་ཡིག', 'bo'], ['phonetics', 'Phonetics']]),
@@ -169,6 +149,10 @@ export function buildSettings(root, ctx) {
     range('veil', 'Syllables veil the seed', { min: 0, max: 1, step: 0.01, format: v => `${Math.round(v * 100)}%` }),
     range('rays', 'Light rays', { min: 0, max: 1, step: 0.01, format: v => `${Math.round(v * 100)}%` }),
     segmented('background', 'Background', [['night', 'Night'], ['black', 'Black'], ['stars', 'Stars']]),
+    toggle('lights', 'Offering lights'),
+    el('div', { class: 'hint', text: 'Lights rise to the buddhas, return into the seed and the mantra, then go down to beings in saṃsāra — round and round, each phase for the time chosen.' }),
+    segmented('lights.phase', 'Each phase', [[10, '10 s'], [30, '30 s'], [60, '1 min']]),
+    range('lights.amount', 'Lights', { min: 0, max: 1, step: 0.01, format: v => `${Math.round(v * 100)}%`, enabled: s => s.lights }),
     ...fxRows,
   );
 
