@@ -1,8 +1,8 @@
 // The frame every mantra opens in: the renderer and its loop, the clock that
 // turns the garland, the counter, the bars and the sheets.
 import * as THREE from 'three';
-import { MANTRAS, findMantra } from '../mantras/index.js';
-import { loadSettings, saveSettings, defaultsFor, loadCount, saveCount, lastMantra, rememberMantra, PERIOD_MIN, PERIOD_MAX } from './settings.js';
+import { MANTRAS, findMantra, withVariant } from '../mantras/index.js';
+import { loadSettings, saveSettings, defaultsFor, loadCount, saveCount, lastMantra, rememberMantra, loadVariant, saveVariant, PERIOD_MIN, PERIOD_MAX } from './settings.js';
 import { loadFonts } from './glyphs.js';
 import { Stage } from './stage.js';
 import { fixedPose, createControls } from './camera.js';
@@ -30,13 +30,14 @@ const controls = createControls(camera, canvas);
 const stars = createStars({ parent: world });
 
 // ── state ────────────────────────────────────────────────────────────────
-let mantra = null, settings = null, stage = null, effects = [], ui = null;
+let base = null, mantra = null, settings = null, stage = null, effects = [], ui = null, frontKey = '';
 let rot = 0, maxRound = 0, correction = 0, total = 0, paused = false;
 let poseDirty = true, snap = true, inVR = false;
 const taps = [];
 
 const ctx = {
   get mantra() { return mantra; },
+  get base() { return base; },
   get settings() { return settings; },
   canFullscreen: !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen),
   set(key, value) {
@@ -44,6 +45,7 @@ const ctx = {
     settings[key] = value;
     saveSettings(mantra, settings);
     if (key === 'script') buildStage();
+    if (key.startsWith('seat.')) poseDirty = true;
     if (key === 'angle' || key === 'camera') { poseDirty = true; snap = settings.camera === 'fixed'; controls.enabled = settings.camera === 'free' && !inVR; }
     applyLook();
     refreshUI();
@@ -54,6 +56,7 @@ const ctx = {
   },
   actions: {
     tap: () => tap(),
+    variant: v => { saveVariant(base.id, v); openMantra(base.id, true); },
     resetView: () => { poseDirty = true; snap = true; },
     count: d => addCount(d),
     resetCount: () => { if (confirm(`Set the ${mantra.name} count back to zero?`)) { total = 0; saveCount(mantra, 0); refreshUI(); } },
@@ -81,10 +84,11 @@ function buildStage() {
   poseDirty = true;
 }
 
-function openMantra(id) {
+function openMantra(id, force = false) {
   const next = findMantra(id) || MANTRAS[0];
-  if (mantra && next.id === mantra.id) return;
-  mantra = next;
+  if (!force && base && next.id === base.id) return;
+  base = next;
+  mantra = withVariant(base, loadVariant(base.id));
   rememberMantra(mantra.id);
   settings = loadSettings(mantra);
   total = loadCount(mantra);
@@ -96,8 +100,10 @@ function openMantra(id) {
   for (const [k, v] of Object.entries({ accent: mantra.palette.accent, muted: mantra.palette.muted, text: mantra.palette.text, glow: mantra.palette.glow,
     bg0: mantra.palette.bg[0], bg1: mantra.palette.bg[1], bg2: mantra.palette.bg[2] })) root.setProperty(`--${k}`, v);
   $('seedBtn').textContent = mantra.seed.text;
-  $('nameBtn').textContent = mantra.name;
+  const variantLabel = mantra.variants?.find(v => v.id === mantra.variant)?.label;
+  $('nameBtn').textContent = variantLabel ? `${mantra.name} · ${variantLabel}` : mantra.name;
   document.title = `${mantra.name} · Mantras Visualised`;
+  frontKey = '';
   ui = buildSettings($('settingsBody'), ctx);
   ctx.onTap?.('Tap at the start of each recitation: the garland takes your pace and brings the first syllable to the front.');
   buildPicker($('pickerBody'), MANTRAS, mantra.id, pick => { closeSheets(); location.hash = pick; });
@@ -118,9 +124,8 @@ function refreshUI() {
   $('periodBtn').textContent = formatPeriod(settings.period);
   $('playBtn').setAttribute('aria-pressed', String(paused));
   $('playBtn').setAttribute('aria-label', paused ? 'Play' : 'Pause');
-  $('scriptBtn').textContent = settings.script === 'tibetan' ? 'Aa' : 'ཀ';
-  $('scriptBtn').classList.toggle('bo', settings.script !== 'tibetan');
-  $('scriptBtn').setAttribute('aria-label', settings.script === 'tibetan' ? 'Show phonetics' : 'Show Tibetan');
+  $('scriptBtn').setAttribute('aria-pressed', String(settings.readout));
+  $('readout').hidden = !settings.readout;
   const m = settings.malaSize;
   $('countBead').textContent = `${total % m}/${m}`;
   $('countMala').textContent = Math.floor(total / m);
@@ -214,8 +219,19 @@ function frame(t) {
   renderer.getDrawingBufferSize(_size);
   for (const fx of effects) fx.update({ dt, time: clock, camera, settings, viewportHeight: _size.y, fov: camera.fov });
   stars.update(dt);
+  if (settings.readout) showFront();
   $('bg').style.setProperty('--pulse', (0.5 + 0.2 * Math.sin(2 * rot)).toFixed(3));
   renderer.render(scene, camera);
+}
+
+// The syllable at the front, at the side of the screen, as in the Ngöndro app.
+function showFront() {
+  const f = stage.frontSyllable();
+  const k = f ? `${f.tibetan}|${f.phonetics}` : '';
+  if (k === frontKey) return;
+  frontKey = k;
+  $('readTib').textContent = f?.tibetan || '';
+  $('readPho').textContent = f?.phonetics || '';
 }
 
 // ── chrome: bars, sheets, gestures, keys ─────────────────────────────────
@@ -260,7 +276,7 @@ function wireChrome() {
   $('settingsBtn').onclick = () => openSheet('settings');
   $('pickerBtn').onclick = () => openSheet('picker');
   $('periodBtn').onclick = () => openSheet('settings');
-  $('scriptBtn').onclick = () => ctx.set('script', settings.script === 'tibetan' ? 'phonetics' : 'tibetan');
+  $('scriptBtn').onclick = () => { frontKey = ''; ctx.set('readout', !settings.readout); };
   $('tapBtn').onclick = tap;
   $('countBtn').onclick = () => (settings.countMode === 'manual' ? addCount(1) : openSheet('settings'));
   holdRepeat($('slowerBtn'), held => setPeriod(settings.period + 0.05 * (held > 2500 ? 5 : 1)));
@@ -292,6 +308,7 @@ function wireChrome() {
     else if (k === 'h' || k === 'H') document.body.classList.toggle('bare');
     else if (k === 'f' || k === 'F') toggleFullscreen();
     else if (k === 'p' || k === 'P') $('scriptBtn').click();
+    else if (k === 'r' || k === 'R') ctx.set('script', settings.script === 'tibetan' ? 'phonetics' : 'tibetan');
     else if (k === 'Escape') closeSheets();
   });
   document.addEventListener('visibilitychange', updateWakeLock);

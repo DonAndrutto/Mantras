@@ -2,6 +2,8 @@
 // Each control reads and writes one key of the settings through `ctx.set`,
 // and `refresh()` brings every control back in line with the settings.
 import { PERIOD_MIN, PERIOD_MAX } from './settings.js';
+import { tibetanSyllables } from './tibetan.js';
+import { SEATS } from './seats.js';
 
 export function el(tag, attrs = {}, ...children) {
   const n = document.createElement(tag);
@@ -88,7 +90,8 @@ export function buildSettings(root, ctx) {
   const tapStatus = el('div', { class: 'hint', text: 'Tap at the start of each recitation: the garland takes your pace and brings the first syllable to the front.' });
   const tapBtn = el('button', { type: 'button', class: 'wide', text: 'Tap', onclick: () => ctx.actions.tap() });
   ctx.onTap = text => { tapStatus.textContent = text; };
-  const syllableCount = mantra.rings.find(r => (r.turns ?? 1) !== 0)?.text.split(/[་།\s]+/).filter(Boolean).length || 1;
+  const turning = mantra.rings.find(r => (r.turns ?? 1) !== 0);
+  const syllableCount = turning ? tibetanSyllables(turning.text).length : 1;
   sync(s => {
     if (document.activeElement !== periodOut) periodOut.value = s.period.toFixed(2);
     periodSlider.value = periodToSlider(s.period);
@@ -113,15 +116,19 @@ export function buildSettings(root, ctx) {
     range('letterScale', 'Letters', { min: 0.3, max: 3, step: 0.01, format: times }),
     range('seedScale', 'Seed syllable', { min: 0.3, max: 3, step: 0.01, format: times }),
   );
-  const [aMin, aMax] = mantra.view.angleRange || [0, 90];
   const view = section('View',
     segmented('camera', 'Camera', [['fixed', 'Fixed'], ['free', 'Free']]),
-    range('angle', 'Angle', { min: aMin, max: aMax, step: 0.5, format: v => `${v.toFixed(1)}°`, enabled: s => s.camera === 'fixed' }),
+    range('angle', 'Angle', { min: 2, max: 90, step: 0.5, format: v => `${v.toFixed(1)}°`, enabled: s => s.camera === 'fixed' }),
     el('div', { class: 'hint', text: 'Free: drag to go round the garland, pinch or scroll to come nearer, two fingers to slide.' }),
     el('button', { type: 'button', class: 'wide', text: 'Reset view', onclick: () => ctx.actions.resetView() }),
   );
+  const seat = section('Seat',
+    ...SEATS.map(x => toggle(`seat.${x.key}`, x.label)),
+    el('div', { class: 'hint', text: 'From the bottom: lotus, sun, moon — as wide as the garland. The seed hovers just above the uppermost.' }),
+  );
   const script = section('Script',
-    segmented('script', 'Syllables', [['tibetan', 'བོད་ཡིག', 'bo'], ['phonetics', 'Phonetics']]),
+    segmented('script', 'Syllables on the ring', [['tibetan', 'བོད་ཡིག', 'bo'], ['phonetics', 'Phonetics']]),
+    toggle('readout', 'Phonetics at the side (Aa)'),
   );
 
   // ── light & effects ────────────────────────────────────────────────────
@@ -130,8 +137,11 @@ export function buildSettings(root, ctx) {
     range(`fx.${fx.id}.amount`, 'Amount', { min: 0, max: 1, step: 0.01, format: v => `${Math.round(v * 100)}%`, enabled: s => s[`fx.${fx.id}`] }),
   ]);
   const light = section('Light & effects',
-    range('glow', 'Glow', { min: 0, max: 2, step: 0.01, format: times }),
+    range('glow', 'Glow', { min: 0, max: 3, step: 0.005, format: v => `× ${v.toFixed(3)}` }),
     range('highlight', 'Front highlight', { min: 0, max: 1.5, step: 0.01, format: times }),
+    range('opacity', 'Syllables: opacity', { min: 0, max: 1.5, step: 0.01, format: times }),
+    range('seedOpacity', 'Seed syllable: opacity', { min: 0, max: 1, step: 0.01, format: v => `${Math.round(v * 100)}%` }),
+    range('veil', 'Syllables veil the seed', { min: 0, max: 1, step: 0.01, format: v => `${Math.round(v * 100)}%` }),
     range('rays', 'Light rays', { min: 0, max: 1, step: 0.01, format: v => `${Math.round(v * 100)}%` }),
     segmented('background', 'Background', [['night', 'Night'], ['black', 'Black'], ['stars', 'Stars']]),
     ...fxRows,
@@ -166,7 +176,15 @@ export function buildSettings(root, ctx) {
     el('button', { type: 'button', class: 'wide quiet', text: `Restore ${mantra.name} defaults`, onclick: () => ctx.actions.resetSettings() }),
   );
 
-  root.replaceChildren(motion, size, view, script, light, counter, screen);
+  const variants = mantra.variants?.length ? section('Mantra',
+    el('div', { class: 'seg' }, mantra.variants.map(v => el('button', {
+      type: 'button', text: v.label, 'aria-pressed': String(v.id === mantra.variant),
+      onclick: () => { if (v.id !== mantra.variant) ctx.actions.variant(v.id); },
+    }))),
+    el('div', { class: 'hint', text: 'Each keeps its own pace, settings and count.' }),
+  ) : null;
+
+  root.replaceChildren(...[variants, motion, size, view, seat, script, light, counter, screen].filter(Boolean));
   return { refresh: () => { for (const f of syncs) f(ctx.settings); } };
 }
 

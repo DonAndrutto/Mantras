@@ -4,6 +4,10 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
 @font-face { font-family: 'EB Garamond'; font-weight: 500; src: url('fonts/EBGaramond-Medium-latin-ext.woff2') format('woff2');
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: 'EB Garamond'; font-weight: 500; font-style: italic; src: url('fonts/EBGaramond-MediumItalic-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: 'EB Garamond'; font-weight: 500; font-style: italic; src: url('fonts/EBGaramond-MediumItalic-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2C60-2C7F, U+A720-A7FF; }
 
 :root {
   --accent: #d4a55a;
@@ -51,14 +55,29 @@ body.bare .chrome.bottom { transform: translateY(8px); }
 
 .icon, .pill, .speed { height: 44px; border-radius: 22px; border: 1px solid var(--line); background: var(--panel);
   color: var(--muted); cursor: pointer; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
-.icon { width: 44px; padding: 0; display: inline-grid; place-items: center; font-size: 20px; line-height: 1; }
+.icon { flex: none; width: 44px; padding: 0; display: inline-grid; place-items: center; font-size: 20px; line-height: 1; }
 .icon.text { font-size: 12px; letter-spacing: 0.12em; font-weight: 600; width: auto; padding: 0 14px; }
 .icon svg, .pill svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
 .icon circle { fill: var(--panel); }
 #scriptBtn { font-family: 'EB Garamond', Georgia, serif; font-size: 17px; }
-#scriptBtn.bo { font-family: 'Jomolhari', serif; font-size: 22px; }
+#scriptBtn[aria-pressed="true"] { color: var(--text); border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel)); }
+
+/* the syllable at the front, at the side of the screen (as in the Ngöndro app) */
+.readout { position: fixed; z-index: 9; left: calc(14px + var(--safe-l)); top: 50%; transform: translateY(-50%);
+  min-width: 96px; max-width: 34vw; padding: 10px 14px 12px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; pointer-events: none; text-align: center; }
+.readout[hidden] { display: none; }
+#readTib { font-size: 30px; line-height: 1.5; color: var(--accent); min-height: 1.5em; }
+#readPho { font-family: 'EB Garamond', Georgia, serif; font-style: italic; font-weight: 500; font-size: 22px; letter-spacing: 0.02em; color: var(--text); min-height: 1.2em; }
+@media (max-width: 520px) and (orientation: portrait) {
+  .readout { top: auto; bottom: calc(84px + var(--safe-b)); transform: none; padding: 6px 12px 8px; }
+  #readTib { font-size: 24px; }
+  #readPho { font-size: 19px; }
+}
+body.bare .readout { opacity: 0.85; }
 .pill { display: inline-flex; align-items: center; gap: 8px; padding: 0 16px; font-size: 14px; color: var(--text); }
-#pickerBtn { padding-left: 12px; max-width: 62vw; }
+#pickerBtn { padding-left: 12px; max-width: 62vw; min-width: 0; flex: 0 1 auto; }
 #pickerBtn #seedBtn { font-size: 22px; color: var(--accent); line-height: 1; transform: translateY(2px); }
 #pickerBtn #nameBtn { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #pickerBtn svg { width: 16px; height: 16px; color: var(--muted); flex: none; }
