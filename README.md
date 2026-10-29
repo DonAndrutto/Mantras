@@ -36,9 +36,15 @@ angle, in the fixed view and in the free camera.
   phonetics, at the side of the screen (as in the Ngöndro app). Settings → Script can also
   write the ring itself in phonetics. Phonetics are one entry per Tibetan syllable (IAST,
   after the Ngöndro app's transliteration).
-- **Seat**: lotus, sun disc and moon disc, any of them, stacked in that order and as wide as
-  the garland; the seed hovers just above the uppermost.
-- **Light & effects**: glow (×0–×3, fine steps), front highlight, the syllables' opacity, the
+- **Seat**: lotus, sun disc and moon disc, any of them, stacked in that order. The discs are
+  paper thin and a little wider than the garland, which turns above them within their rim;
+  the lotus has 4, 8, 16 or a thousand petals. The seed hovers just above the uppermost seat.
+- **Garland**: up to two more mantras can follow this one in the same garland (Settings →
+  Garland); one round is then one recitation of all of them.
+- **Syllables keep their marks**: tsheg, shad, visarga and terma marks stay with the syllable
+  they are written with.
+- **Light & effects**: glow (×0–×3, fine steps; drawn from the letter's own outline, so it stays
+  smooth at any zoom), front highlight, the syllables' opacity, the
   seed's opacity, how much syllables passing in front veil the seed (even when faint), light
   rays, background (night / black / stars), and the mantra's own effects (Vajrasattva: nectar).
 - **Turning / Syllables follow**: the direction of the spin and of the syllables' order,
@@ -69,8 +75,8 @@ mantra's `effects` list and registered in `js/app.js`.
 | `index.html`, `app.css` | The page and its one style; each mantra recolours it. |
 | `js/app.js` | Renderer and loop, the clock, tap tempo, counter, bars, keys, wake lock, VR button. |
 | `js/stage.js` | One mantra in 3D: rings, seed, halo and pool of light; the veil over the seed. |
-| `js/seats.js` | Lotus, sun and moon seats. |
-| `js/glyphs.js` | Syllables drawn once into textures (letter and halo in one), and their shader. |
+| `js/seats.js` | Lotus (4, 8, 16, thousand petals), sun and moon seats. |
+| `js/glyphs.js` | Syllables as distance fields with their blurred glow, and the shader that draws them sharp at any size. |
 | `js/camera.js` | The fixed, framed view and the free orbit camera. |
 | `js/xr.js` | WebXR detection and session start. |
 | `js/ui.js` | The settings sheet and the mantra menu. |

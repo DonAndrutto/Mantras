@@ -3,7 +3,8 @@
 // and `refresh()` brings every control back in line with the settings.
 import { PERIOD_MIN, PERIOD_MAX } from './settings.js';
 import { tibetanSyllables } from './tibetan.js';
-import { SEATS } from './seats.js';
+import { SEATS, PETALS } from './seats.js';
+import { allMantraKeys } from '../mantras/index.js';
 
 export function el(tag, attrs = {}, ...children) {
   const n = document.createElement(tag);
@@ -124,7 +125,31 @@ export function buildSettings(root, ctx) {
   );
   const seat = section('Seat',
     ...SEATS.map(x => toggle(`seat.${x.key}`, x.label)),
-    el('div', { class: 'hint', text: 'From the bottom: lotus, sun, moon — as wide as the garland. The seed hovers just above the uppermost.' }),
+    segmented('seat.petals', 'Lotus petals', PETALS.map(n => [n, n === 1000 ? 'Thousand' : String(n)])),
+    el('div', { class: 'hint', text: 'From the bottom: lotus, sun, moon. The discs are a little wider than the garland, which turns above them; the seed hovers just above the uppermost.' }),
+  );
+  // other mantras sharing this garland, in the order chosen (up to two)
+  const own = mantra.variant ? `${mantra.id}/${mantra.variant}` : mantra.id;
+  const choices = allMantraKeys().filter(c => c.key !== own);
+  const joinButtons = choices.map(c => el('button', {
+    type: 'button', class: 'join', 'aria-pressed': 'false',
+    onclick: () => {
+      const now = ctx.settings.join.split(',').filter(Boolean);
+      const next = now.includes(c.key) ? now.filter(k => k !== c.key) : [...now, c.key].slice(-2);
+      ctx.set('join', next.join(','));
+    },
+  }, el('span', { class: 'n' }), el('span', { text: c.label })));
+  sync(s => {
+    const now = s.join.split(',').filter(Boolean);
+    choices.forEach((c, i) => {
+      const at = now.indexOf(c.key);
+      joinButtons[i].setAttribute('aria-pressed', String(at >= 0));
+      joinButtons[i].firstChild.textContent = at >= 0 ? String(at + 2) : '';
+    });
+  });
+  const garland = section('Garland',
+    el('div', { class: 'hint', text: `Up to two more mantras can follow ${mantra.name} in the same garland. One round is then one recitation of all of them.` }),
+    el('div', { class: 'joins' }, joinButtons),
   );
   const script = section('Script',
     segmented('script', 'Syllables on the ring', [['tibetan', 'བོད་ཡིག', 'bo'], ['phonetics', 'Phonetics']]),
@@ -184,7 +209,7 @@ export function buildSettings(root, ctx) {
     el('div', { class: 'hint', text: 'Each keeps its own pace, settings and count.' }),
   ) : null;
 
-  root.replaceChildren(...[variants, motion, size, view, seat, script, light, counter, screen].filter(Boolean));
+  root.replaceChildren(...[variants, motion, size, view, seat, garland, script, light, counter, screen].filter(Boolean));
   return { refresh: () => { for (const f of syncs) f(ctx.settings); } };
 }
 

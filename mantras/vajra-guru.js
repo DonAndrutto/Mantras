@@ -12,7 +12,6 @@ export default shortMantra({
   rings: [ring({
     text: 'ཨོཾ་ཨཱཿཧཱུྃ་བཛྲ་གུ་རུ་པདྨ་སིདྡྷི་ཧཱུྃ༔',
     phonetics: 'om āḥ hūṃ vajra gu ru padma siddhi hūṃ',
-    keepMarks: true,
     blur: 0.1,
   })],
   motion: { period: 8 },

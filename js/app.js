@@ -1,7 +1,7 @@
 // The frame every mantra opens in: the renderer and its loop, the clock that
 // turns the garland, the counter, the bars and the sheets.
 import * as THREE from 'three';
-import { MANTRAS, findMantra, withVariant } from '../mantras/index.js';
+import { MANTRAS, findMantra, withVariant, mantraByKey } from '../mantras/index.js';
 import { loadSettings, saveSettings, defaultsFor, loadCount, saveCount, lastMantra, rememberMantra, loadVariant, saveVariant, PERIOD_MIN, PERIOD_MAX } from './settings.js';
 import { loadFonts } from './glyphs.js';
 import { Stage } from './stage.js';
@@ -44,8 +44,7 @@ const ctx = {
     if (settings[key] === value) return;
     settings[key] = value;
     saveSettings(mantra, settings);
-    if (key === 'script') buildStage();
-    if (key.startsWith('seat.')) poseDirty = true;
+    if (key === 'script' || key === 'join') buildStage();
     if (key === 'angle' || key === 'camera') { poseDirty = true; snap = settings.camera === 'fixed'; controls.enabled = settings.camera === 'free' && !inVR; }
     applyLook();
     refreshUI();
@@ -77,7 +76,8 @@ const ctx = {
 function buildStage() {
   for (const fx of effects) fx.dispose();
   stage?.dispose();
-  stage = new Stage({ mantra, settings, renderer });
+  const joined = settings.join.split(',').filter(Boolean).map(mantraByKey).filter(Boolean);
+  stage = new Stage({ mantra, settings, joined });
   world.add(stage.group);
   effects = [createRays({ stage })];
   for (const fx of mantra.effects || []) if (EFFECTS[fx.id]) effects.push(EFFECTS[fx.id]({ stage, mantra }));
