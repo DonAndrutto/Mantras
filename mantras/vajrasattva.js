@@ -21,7 +21,7 @@ export default {
 
   seed: {
     text: 'ཧཱུྃ',
-    phonetics: 'HUNG',
+    phonetics: 'hūṃ',
     size: 0.19,              // em, in garland radii
     lift: 0.14,              // em above the ring's plane
     opacity: 0.72,
@@ -34,13 +34,13 @@ export default {
     {
       id: 'hundred',
       text: 'ཨོཾ་བཛྲ་སཏྭ་ས་མ་ཡ། མ་ནུ་པཱ་ལ་ཡ། བཛྲ་སཏྭ་ཏྭེ་ནོ་པ་ཏིཥྛ། དྲྀ་ཌྷོ་མེ་བྷ་ཝ། སུ་ཏོ་ཥྱོ་མེ་བྷ་ཝ། སུ་པོ་ཥྱོ་མེ་བྷ་ཝ། ཨ་ནུ་རཀྟོ་མེ་བྷ་ཝ། སརྦ་སིདྡྷི་མྨེ་པྲ་ཡཙྪ། སརྦ་ཀརྨ་སུ་ཙ་མེ། ཙིཏྟཾ་ཤྲེ་ཡཿ་ཀུ་རུ་ཧཱུྃ། ཧ་ཧ་ཧ་ཧ་ཧོཿ བྷ་ག་ཝན། སརྦ་ཏ་ཐཱ་ག་ཏ། བཛྲ་མཱ་མེ་མུཉྩ། བཛྲཱི་བྷ་ཝ། མ་ཧཱ་ས་མ་ཡ་སཏྭ་ཨཱཿ',
-      phonetics: 'OM VAJRA SATTVA SAMAYA MANUPALAYA VAJRA SATTVA TVENOPATISHTHA DRIDHO ME BHAVA SUTOSHYO ME BHAVA SUPOSHYO ME BHAVA ANURAKTO ME BHAVA SARVA SIDDHI ME PRAYACCHA SARVA KARMA SU CHA ME CHITTAM SHREYAH KURU HUNG HA HA HA HA HO BHAGAVAN SARVA TATHAGATA VAJRA MA ME MUNCHA VAJRI BHAVA MAHA SAMAYA SATTVA AH',
+      // one entry per syllable, after the transliteration in the Ngöndro app
+      phonetics: 'om vajra sattva sa ma ya ma nu pā la ya vajra sattva te no pa tiṣṭha dṛ ḍho me bha va su to ṣyo me bha va su po ṣyo me bha va a nu rakto me bha va sarva siddhi mme pra yaccha sarva karma su ca me cittaṃ śri yaṃ ku ru hūṃ ha ha ha ha ho bha ga vān sarva ta thā ga ta vajra mā me muñca vajrī bha va ma hā sa ma ya sattva āḥ',
       radius: 1,
       letterSize: 0.064,     // em, in garland radii
       gap: 0.55,             // em between syllables before the ring is shared out
-      gapPhonetics: 0.7,
+      gapPhonetics: 0.45,
       spacing: 'width',      // each syllable takes its own width of the ring
-      facing: 'billboard',   // each syllable turns to the viewer
       order: 'ccw',          // seen from above, the next syllable stands counter-clockwise
       turns: 1,              // whole turns per round of the mantra
       blur: 0.29,
@@ -50,13 +50,12 @@ export default {
     {
       id: 'short',
       text: 'ཨོཾ་བཛྲ་སཏྭ་ཨཱཿ',
-      phonetics: 'OM VAJRA SATTVA AH',
+      phonetics: 'om vajra sattva āḥ',
       radius: 0.36,
       depth: 1.55,           // front and back stand farther out, clear of ཧཱུྃ
       y: -0.02,
       letterSize: 0.103,
       spacing: 'even',       // one at each quarter: front, left, back, right
-      facing: 'billboard',
       order: 'cw',
       turns: 0,              // stands still
       scaleWith: 'seed',
@@ -67,7 +66,7 @@ export default {
   ],
 
   motion: { period: 17, spin: 'cw' },
-  view: { angle: 23, angleRange: [5, 90], distance: 3.2, fill: 1.2 },   // the garland runs past the sides, as designed
+  view: { angle: 23, distance: 3.2, fill: 1.2 },   // the garland runs past the sides, as designed
 
   effects: [
     { id: 'nectar', label: 'Nectar falling', on: true, amount: 0.45 },

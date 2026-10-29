@@ -41,7 +41,7 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
   </button>
   <span class="spacer"></span>
-  <button id="scriptBtn" class="icon" type="button" aria-label="Show phonetics">Aa</button>
+  <button id="scriptBtn" class="icon" type="button" aria-label="Phonetics at the side" aria-pressed="false" title="Phonetics">Aa</button>
   <button id="vrBtn" class="icon text" type="button" hidden aria-label="Enter VR">VR</button>
   <button id="fsBtn" class="icon" type="button" aria-label="Full screen">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
@@ -66,6 +66,11 @@
     <span id="countBead"></span><span class="sep">·</span><span id="countMala"></span>
   </button>
 </footer>
+
+<aside id="readout" class="readout" hidden aria-live="off" aria-label="The syllable at the front">
+  <div id="readTib" class="bo"></div>
+  <div id="readPho"></div>
+</aside>
 
 <div id="scrim"></div>
 <section id="settings" class="sheet" hidden aria-label="Settings">

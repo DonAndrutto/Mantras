@@ -3,24 +3,30 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, access } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { MANTRAS } from '../mantras/index.js';
+import { MANTRAS, withVariant } from '../mantras/index.js';
 import { tibetanSyllables, phoneticWords, ringTokens } from '../js/tibetan.js';
 
 const root = new URL('../', import.meta.url);
 
 test('syllables split on tsheg and shad, keeping marks when asked', () => {
   assert.deepEqual(tibetanSyllables('ཨོཾ་བཛྲ་སཏྭ་ཨཱཿ'), ['ཨོཾ', 'བཛྲ', 'སཏྭ', 'ཨཱཿ']);
+  assert.deepEqual(tibetanSyllables('ཀུལླེ་ཧྲཱིཿསྭཱ་ཧཱ།'), ['ཀུལླེ', 'ཧྲཱིཿ', 'སྭཱ', 'ཧཱ']);
   assert.deepEqual(tibetanSyllables('ཨོཾ་ཨཱཿཧཱུྃ་བཛྲ་གུ་རུ་པདྨ་སིདྡྷི་ཧཱུྃ༔', { keepMarks: true }),
     ['ཨོཾ་', 'ཨཱཿ', 'ཧཱུྃ་', 'བཛྲ་', 'གུ་', 'རུ་', 'པདྨ་', 'སིདྡྷི་', 'ཧཱུྃ༔']);
   assert.deepEqual(phoneticWords(' OM  AH HUNG '), ['OM', 'AH', 'HUNG']);
 });
 
+// every mantra, and every variant of one, as the page sees it
+const resolved = MANTRAS.flatMap(b => (b.variants?.length ? b.variants.map(v => withVariant(b, v.id)) : [b]));
+
 test('every mantra is complete', () => {
   const ids = new Set();
-  for (const m of MANTRAS) {
-    assert.ok(/^[a-z0-9-]+$/.test(m.id), `${m.id}: id is used in the address`);
-    assert.ok(!ids.has(m.id), `${m.id}: duplicate id`); ids.add(m.id);
-    assert.ok(m.name && m.seed?.text, `${m.id}: name and seed`);
+  for (const b of MANTRAS) {
+    assert.ok(/^[a-z0-9-]+$/.test(b.id), `${b.id}: id is used in the address`);
+    assert.ok(!ids.has(b.id), `${b.id}: duplicate id`); ids.add(b.id);
+  }
+  for (const m of resolved) {
+    assert.ok(m.name && m.seed?.text && m.seed?.phonetics, `${m.id}: name and seed`);
     for (const k of ['ink', 'hi', 'glow', 'halo', 'accent', 'muted', 'text'])
       assert.match(m.palette[k], /^#[0-9a-f]{6}$/i, `${m.id}: palette.${k}`);
     assert.equal(m.palette.bg.length, 3);
@@ -29,15 +35,20 @@ test('every mantra is complete', () => {
     for (const r of m.rings) {
       assert.ok(ringTokens(r, 'tibetan').length > 0, `${m.id}/${r.id}: syllables`);
       assert.ok(['cw', 'ccw'].includes(r.order), `${m.id}/${r.id}: order`);
-      assert.ok(['billboard', 'outward', 'inward'].includes(r.facing), `${m.id}/${r.id}: facing`);
-      if (r.phonetics) assert.ok(ringTokens(r, 'phonetics').length > 0);
+      assert.ok(r.phonetics, `${m.id}/${r.id}: phonetics`);
+      assert.equal(ringTokens(r, 'phonetics').length, ringTokens(r, 'tibetan').length,
+        `${m.id}/${r.id}: one phonetic entry per Tibetan syllable`);
     }
   }
 });
 
-test('the Vajra Guru phonetics follow the Tibetan word for word', () => {
-  const ring = MANTRAS.find(m => m.id === 'vajra-guru').rings[0];
-  assert.equal(ringTokens(ring, 'phonetics').length, ringTokens(ring, 'tibetan').length);
+test('Kurukulle offers its two mantras around one seed', () => {
+  const k = MANTRAS.find(m => m.id === 'kurukulle');
+  assert.deepEqual(k.variants.map(v => v.id), ['approach', 'accomplishment']);
+  const [a, b] = k.variants.map(v => withVariant(k, v.id));
+  assert.equal(a.seed.text, b.seed.text);
+  assert.notEqual(a.rings[0].text, b.rings[0].text);
+  assert.equal(withVariant(k, 'nonsense').variant, 'approach');
 });
 
 test('vendored files match the import map integrity hashes', async () => {
