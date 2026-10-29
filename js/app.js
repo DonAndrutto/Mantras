@@ -11,6 +11,7 @@ import { createNectar } from './effects/nectar.js';
 import { createRays } from './effects/rays.js';
 import { createOfferings, PHASES } from './effects/offerings.js';
 import { createStars } from './effects/stars.js';
+import { createBackdrop } from './backdrop.js';
 import { buildSettings, buildPicker, holdRepeat, roundPeriod, formatPeriod } from './ui.js';
 
 const TAU = Math.PI * 2;
@@ -19,11 +20,15 @@ const $ = id => document.getElementById(id);
 
 // ── renderer, scene, camera ──────────────────────────────────────────────
 const canvas = $('scene');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-renderer.setClearColor(0x000000, 0);
+// Opaque: the sky is drawn in the scene (see backdrop.js), so added light shows on every screen.
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false, powerPreference: 'high-performance' });
+renderer.setClearColor(0x0a0f1a, 1);
 renderer.xr.enabled = true;
+// Pixels drawn per frame are held to about this many, so a large, sharp
+// desktop screen does not draw four times what a phone does.
+const PIXEL_BUDGET = 4.2e6;
 const scene = new THREE.Scene();
+const backdrop = createBackdrop({ scene });
 const world = new THREE.Group();       // moved into place for VR
 scene.add(world);
 const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 200);
@@ -116,6 +121,8 @@ function openMantra(id, force = false) {
 function applyLook() {
   document.body.dataset.bg = settings.background;
   stars.visible = settings.background === 'stars';
+  backdrop.look(settings.background, mantra.palette);
+  backdrop.visible = !inVR;
   scene.background = inVR ? new THREE.Color(settings.background === 'black' ? '#000000' : mantra.palette.bg[2]) : null;
   document.body.classList.toggle('free', settings.camera === 'free');
   updateWakeLock();
@@ -188,6 +195,7 @@ function advance(dt) {
 // ── camera ───────────────────────────────────────────────────────────────
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
+  renderer.setPixelRatio(Math.max(1, Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(PIXEL_BUDGET / (w * h)))));
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   poseDirty = true;
@@ -227,7 +235,7 @@ function frame(t) {
   stars.update(dt);
   if (settings.readout) showFront();
   showPhase();
-  $('bg').style.setProperty('--pulse', (0.5 + 0.2 * Math.sin(2 * rot)).toFixed(3));
+  backdrop.update({ pulse: 0.5 + 0.2 * Math.sin(2 * rot), width: _size.x, height: _size.y });
   renderer.render(scene, camera);
 }
 

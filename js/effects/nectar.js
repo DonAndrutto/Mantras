@@ -98,9 +98,7 @@ export function createNectar({ stage }) {
         if (y < floor) life[i] = 0;
       }
       points.visible = alive > 0;
-      geometry.attributes.position.needsUpdate = true;
-      geometry.attributes.alpha.needsUpdate = true;
-      geometry.attributes.size.needsUpdate = true;
+      if (alive) for (const k of ['position', 'alpha', 'size']) geometry.attributes[k].needsUpdate = true;
     },
     dispose() { points.removeFromParent(); geometry.dispose(); material.dispose(); },
   };

@@ -26,7 +26,7 @@ export default shortMantra({
       rings: [ring({
         text: 'ཨོཾ་པདྨ་ཌཱ་ཀི་ནཱི་ཀུ་རུ་ཀུལླེ་ཧ་རི་ནི་ས་སརྦ་སིདྡྷི་ལོ་ཀ་ཝཱ་ཤཾ་ཀུ་རུ་ཧྲཱིཿསྭཱ་ཧཱ།',
         phonetics: 'om padma ḍā ki nī ku ru kulle ha ri ni sa sarva siddhi lo ka vā śaṃ ku ru hrīḥ svā hā',
-        fill: 0.52,
+        fill: 0.47,
       })],
       motion: { period: 9 },
     },

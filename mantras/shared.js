@@ -18,10 +18,8 @@ export function ring({ text, phonetics, ...rest }) {
     text,
     phonetics,               // one entry per Tibetan syllable
     radius: 1,
-    letterSize: 'auto',      // sized from the ring: `fill` of it is letters
-    fill: 0.42,
-    gap: 0.15,
-    gapPhonetics: 0.4,
+    letterSize: 'auto',      // sized from the ring: `fill` of it is ink, the rest even air
+    fill: 0.38,
     spacing: 'width',
     order: 'ccw',            // seen from above, the next syllable stands counter-clockwise
     turns: 1,

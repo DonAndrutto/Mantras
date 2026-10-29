@@ -11,7 +11,7 @@ export default shortMantra({
   rings: [ring({
     text: 'ཨོཾ་ཏཱ་རེ་ཏུཏྟཱ་རེ་ཏུ་རེ་མམ་ཨཱ་ཡུརྫྙཱ་ནཱ་པུཎྱེ་པུཥྚིཾ་ཀུ་རུ་སྭཱ་ཧཱ།',
     phonetics: 'om tā re tuttā re tu re mama ā yurjñā nā puṇye puṣṭiṃ ku ru svā hā',
-    fill: 0.5,
+    fill: 0.45,
   })],
   motion: { period: 7 },
 });

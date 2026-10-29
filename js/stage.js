@@ -16,33 +16,33 @@ const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 // own: how many syllables one recitation has. The ring keeps its size: held
 // twice or three times, the mantra runs closer together round the same ring,
 // and the letters give way only once they would otherwise touch.
+// Every two neighbours have the same air between their ink, whatever their
+// widths: what is left of the ring once the letters are placed, shared out
+// evenly (with a little more between one recitation and the next).
 function ringLayout(ring, tokens, after, set, script, own = tokens.length) {
-  const adv = tokens.map(t => set.get(t).advance);
-  const gap = script === 'phonetics' ? (ring.gapPhonetics ?? 0.4) : (ring.gap ?? 0.3);
+  const ink = tokens.map(t => set.get(t).width);
+  const sum = a => a.reduce((x, y) => x + y, 0);
+  const circ = TAU * (ring.radius ?? 1);
+  const ownInk = sum(ink.slice(0, own)) || 1, allInk = sum(ink) || 1, air = sum(after);
+  // Em size in radii: 'auto' gives one recitation's ink `fill` of the ring
+  // (a little less in phonetics, whose words are wide and low); a fixed size
+  // is held back only where neighbours would come too close.
+  let size;
+  if (ring.letterSize === 'auto') {
+    const fill = (ring.fill ?? 0.38) * (script === 'phonetics' ? 0.85 : 1), times = allInk / ownInk;
+    size = (circ / ownInk) * fill * Math.min(1, 0.7 / (fill * times));
+  } else size = Math.min(ring.letterSize, (circ * 0.7) / allInk);
   let centers;
   if (ring.spacing === 'even') {
     centers = tokens.map((_, i) => (i / tokens.length) * TAU);
   } else {
-    const slots = adv.map((a, i) => a + gap + after[i]);
-    const sum = slots.reduce((a, b) => a + b, 0) || 1;
+    const round = circ / size;                                   // the ring in em
+    const gap = Math.max(0, (round - allInk - air) / tokens.length);
     let cum = 0;
-    centers = slots.map(s => { const c = ((cum + s / 2) / sum) * TAU; cum += s; return c; });
+    centers = ink.map((w, i) => { const c = ((cum + w / 2) / round) * TAU; cum += w + gap + after[i]; return c; });
     const c0 = centers[0];
     centers = centers.map(c => c - c0);
   }
-  // Em size in radii: 'auto' gives one recitation's letters `fill` of the
-  // ring; a fixed size is held back only where neighbours would touch.
-  const r0 = ring.radius ?? 1;
-  const ownSlots = adv.slice(0, own).reduce((a, b) => a + b + gap, 0) || 1;
-  const allSlots = adv.reduce((a, b, i) => a + b + gap + after[i], 0) || 1;
-  const allAdv = adv.reduce((a, b) => a + b, 0) || 1;
-  const times = allSlots / ownSlots;
-  let size;
-  if (ring.letterSize === 'auto') {
-    const fill = ring.fill ?? 1;
-    size = ((TAU * r0) / ownSlots) * fill * Math.min(1, 0.85 / (fill * times));
-  } else if (script === 'phonetics') size = Math.min(ring.letterSize, (TAU * r0) / allSlots);
-  else size = Math.min(ring.letterSize, (TAU * r0 * 0.98) / allAdv);
   return { centers, size };
 }
 
@@ -75,6 +75,8 @@ export class Stage {
       const height = Math.max(...tokens.map(t => set.get(t).height));
       this.rings.push({ spec: ring, items, size, height, tibetan: syl.tibetan, phonetics: syl.phonetics });
     });
+    // the turning syllables' positions: the same vectors, moved every frame
+    this._sources = this.rings.filter(r => (r.spec.turns ?? 1) !== 0).flatMap(r => r.items.map(it => it.mesh.position));
 
     const seed = mantra.seed;
     const seedScript = phon && seed.phonetics ? 'phonetics' : 'tibetan';
@@ -106,6 +108,7 @@ export class Stage {
     this._q = new THREE.Quaternion();
     this._v = new THREE.Vector3();
     this._view = new THREE.Matrix4();
+    this._seedView = new THREE.Vector3();
   }
 
   // Half the height the rings and seed need at scale 1, for framing the view.
@@ -118,11 +121,7 @@ export class Stage {
   }
 
   // Where the turning syllables are now, in the stage's own space (for effects).
-  sources() {
-    const out = [];
-    for (const r of this.rings) if ((r.spec.turns ?? 1) !== 0) for (const it of r.items) out.push(it.mesh.position);
-    return out;
-  }
+  sources() { return this._sources; }
 
   // The syllable at the front: its Tibetan and its phonetics.
   frontSyllable() {
@@ -162,7 +161,7 @@ export class Stage {
     const su = this.seedMaterial.uniforms;
     su.opacity.value = settings.seedOpacity;
     su.glow.value = settings.glow * (0.30 + 0.22 * breath + 0.5 * (this.absorb ?? 0));
-    const seedView = this._toView(this.seed.position, new THREE.Vector3());
+    const seedView = this._toView(this.seed.position, this._seedView);
     const seedR = (seedEm * this.seedHeight * 0.5) / seedView.z;
 
     const spin = settings.spin === 'cw' ? -1 : 1;

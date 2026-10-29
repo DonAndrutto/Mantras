@@ -37,10 +37,8 @@ export default {
       // one entry per syllable, after the transliteration in the Ngöndro app
       phonetics: 'om vajra sattva sa ma ya ma nu pā la ya vajra sattva te no pa tiṣṭha dṛ ḍho me bha va su to ṣyo me bha va su po ṣyo me bha va a nu rakto me bha va sarva siddhi mme pra yaccha sarva karma su ca me cittaṃ śri yaṃ ku ru hūṃ ha ha ha ha ho bha ga vān sarva ta thā ga ta vajra mā me muñca vajrī bha va ma hā sa ma ya sattva āḥ',
       radius: 1,
-      letterSize: 0.064,     // em, in garland radii
-      gap: 0.55,             // em between syllables before the ring is shared out
-      gapPhonetics: 0.45,
-      spacing: 'width',      // each syllable takes its own width of the ring
+      letterSize: 0.068,     // em, in garland radii
+      spacing: 'width',      // each syllable its own width, the same air between all
       order: 'ccw',          // seen from above, the next syllable stands counter-clockwise
       turns: 1,              // whole turns per round of the mantra
       blur: 0.29,

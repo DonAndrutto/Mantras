@@ -14,6 +14,8 @@ nothing to install, everything (three.js, fonts) served from this repository.
 | `#white-tara` | White Tara's long-life mantra around ཏཱྃ |
 | `#dzambhala` | Dzambhala's mantra around ཛྃ |
 | `#kurukulle` | Kurukulle's approach and accomplishment mantras (switch in Settings → Mantra) around ཧྲཱིཿ |
+| `#chenrezig` | Om Mani Padme Hum, ཨོཾ་མ་ཎི་པདྨེ་ཧཱུྃ, around ཧྲཱི༔ |
+| `#amitabha` | Om Ami Dewa Hrih, ༀ་ཨ་མི་དྷེ་ཝ་ཧྲཱི༔, around ཧྲཱི༔ |
 
 Every mantra moves the same way: the syllables stand upright facing you from any
 angle, in the fixed view and in the free camera.
@@ -48,6 +50,8 @@ angle, in the fixed view and in the free camera.
   each phase 10 s, 30 s or a minute. The phase shows under the top bar.
 - **Syllables keep their marks**: tsheg, shad, visarga and terma marks stay with the syllable
   they are written with.
+- **Even spacing**: every two neighbouring syllables have the same air between their ink,
+  whatever their widths (a little more between one recitation and the next).
 - **Light & effects**: glow (×0–×3, fine steps; drawn from the letter's own outline, so it stays
   smooth at any zoom), front highlight, the syllables' opacity, the
   seed's opacity, how much syllables passing in front veil the seed (even when faint), light
@@ -79,9 +83,10 @@ mantra's `effects` list and registered in `js/app.js`.
 | --- | --- |
 | `index.html`, `app.css` | The page and its one style; each mantra recolours it. |
 | `js/app.js` | Renderer and loop, the clock, tap tempo, counter, bars, keys, wake lock, VR button. |
+| `js/backdrop.js` | The night sky, drawn in WebGL so the canvas is opaque and light shows the same on every screen. |
 | `js/stage.js` | One mantra in 3D: rings, seed, halo and pool of light; the veil over the seed. |
 | `js/seats.js` | Lotus (4, 8, 16, thousand petals), sun and moon seats. |
-| `js/glyphs.js` | Syllables as distance fields with their blurred glow, and the shader that draws them sharp at any size. |
+| `js/glyphs.js` | Syllables as distance fields with their blurred glow (kept for reuse), and the shader that draws them sharp at any size. |
 | `js/camera.js` | The fixed, framed view and the free orbit camera. |
 | `js/xr.js` | WebXR detection and session start. |
 | `js/ui.js` | The settings sheet and the mantra menu. |
