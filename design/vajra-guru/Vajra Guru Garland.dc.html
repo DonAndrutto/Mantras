@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    @font-face { font-family: 'Jomolhari'; src: url('./fonts/Jomolhari-Regular.ttf') format('truetype'); font-display: block; }
+    html, body { margin: 0; padding: 0; background: #0a0f1a; height: 100%; overflow: hidden; }
+    a { color: #ef7f96; } a:hover { color: #ffd6df; }
+    input[type=range].om-reg { -webkit-appearance: none; appearance: none; width: 100%; height: 18px; background: transparent; margin: 0; cursor: pointer; }
+    input[type=range].om-reg::-webkit-slider-runnable-track { height: 2px; background: rgba(239,127,150,0.26); border-radius: 2px; }
+    input[type=range].om-reg::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #ef7f96; margin-top: -6px; border: none; }
+    input[type=range].om-reg::-moz-range-track { height: 2px; background: rgba(239,127,150,0.26); border-radius: 2px; }
+    input[type=range].om-reg::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #ef7f96; border: none; }
+  </style>
+  <script>window.OM_SCENES='[{"name":"Rotation","dur":30,"mantra":"ཨོཾ་ཨཱཿཧཱུྃ་བཛྲ་གུ་རུ་པདྨ་སིདྡྷི་ཧཱུྃ༔","center":"ཧྲཱིཿ","mantraLatin":"OM AH HUNG VAJRA GU RU PADMA SIDDHI HUNG","centerLatin":"HRIH","nat":30}]';</script>
+  <script>window.OM_PLAYBACK='{"mode":"loop"}';</script>
+  <script>window.TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+    "motionEditor": true,
+    "direction": "clockwise",
+    "script": "tibetan",
+    "viewAngle": 5,
+    "period": 8
+  }/*EDITMODE-END*/;</script>
+  <template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><rect width="120" height="120" fill="#0a0f1a"/><circle cx="60" cy="60" r="30" fill="none" stroke="#ef7f96" stroke-opacity="0.45" stroke-width="1.5"/><circle cx="60" cy="60" r="7" fill="#ef7f96" fill-opacity="0.8"/><circle cx="90" cy="60" r="3.5" fill="#ef7f96" fill-opacity="0.7"/><circle cx="30" cy="60" r="3.5" fill="#ef7f96" fill-opacity="0.5"/><circle cx="60" cy="30" r="3.5" fill="#ef7f96" fill-opacity="0.5"/><circle cx="60" cy="90" r="3.5" fill="#ef7f96" fill-opacity="0.7"/></svg></template>
+</helmet>
+<x-import component-from-global-scope="GuruGarland" from="./animations-v2.jsx ./tweaks-panel.jsx ./garland-guru.jsx" hint-size="100%,100vh"></x-import>
+</x-dc>
+</body>
+</html>

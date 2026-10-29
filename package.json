@@ -1,0 +1,10 @@
+{
+  "name": "mantras",
+  "private": true,
+  "type": "module",
+  "description": "Vajrayāna mantra garlands, visualised. No build step and no dependencies.",
+  "scripts": {
+    "start": "node tests/serve.mjs",
+    "test": "node --test"
+  }
+}

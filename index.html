@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mantras Visualised</title>
+<meta name="description" content="Vajrayāna mantra garlands turning around their seed syllables, for recitation and visualisation.">
+<meta name="theme-color" content="#0a0f1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mantras">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preload" href="fonts/Jomolhari-Regular.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="stylesheet" href="app.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three@0.184.0/build/three.module.js",
+    "three/addons/controls/OrbitControls.js": "./vendor/three@0.184.0/examples/jsm/controls/OrbitControls.js"
+  },
+  "integrity": {
+    "./vendor/three@0.184.0/build/three.module.js": "sha384-8FCZ1eVO6it4+pbec2aDtnTrwjWXZLJRC+MAGCIPDgsYnUrl/E0A2YlF8ioMKI/J",
+    "./vendor/three@0.184.0/build/three.core.js": "sha384-dw2ooPewaEIrAgl6oFDBmmBWCE9oW9LxRGcfwZ0hLvEprzo202wXl7vCYHRlSnOT",
+    "./vendor/three@0.184.0/examples/jsm/controls/OrbitControls.js": "sha384-4rziNxOBZKQ69i+w+f89KJ55TCYquwchVbByQwmaOeIOXdOU2PLDn3kOfXHwIJC9"
+  }
+}
+</script>
+<script type="module" src="js/app.js"></script>
+</head>
+<body>
+<div id="bg" aria-hidden="true"><div class="pulse"></div><div class="grain"></div></div>
+<canvas id="scene" aria-label="Mantra garland"></canvas>
+<div id="loading" aria-hidden="true">ཧཱུྃ</div>
+
+<header class="chrome top">
+  <button id="pickerBtn" class="pill" type="button" aria-label="Choose a mantra">
+    <span id="seedBtn" class="bo"></span><span id="nameBtn"></span>
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg>
+  </button>
+  <span class="spacer"></span>
+  <button id="scriptBtn" class="icon" type="button" aria-label="Show phonetics">Aa</button>
+  <button id="vrBtn" class="icon text" type="button" hidden aria-label="Enter VR">VR</button>
+  <button id="fsBtn" class="icon" type="button" aria-label="Full screen">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+  </button>
+  <button id="settingsBtn" class="icon" type="button" aria-label="Settings">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>
+  </button>
+</header>
+
+<footer class="chrome bottom">
+  <button id="playBtn" class="icon round" type="button" aria-label="Pause" aria-pressed="false">
+    <svg class="pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>
+    <svg class="play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+  </button>
+  <div class="speed" role="group" aria-label="Seconds per round">
+    <button id="fasterBtn" class="icon" type="button" aria-label="Faster by 0.05 s">−</button>
+    <button id="periodBtn" type="button" aria-label="Seconds per round"></button>
+    <button id="slowerBtn" class="icon" type="button" aria-label="Slower by 0.05 s">+</button>
+  </div>
+  <button id="tapBtn" class="pill" type="button" aria-label="Tap tempo: tap at the start of each recitation">Tap</button>
+  <button id="countBtn" class="pill count" type="button" aria-label="Recitation count">
+    <span id="countBead"></span><span class="sep">·</span><span id="countMala"></span>
+  </button>
+</footer>
+
+<div id="scrim"></div>
+<section id="settings" class="sheet" hidden aria-label="Settings">
+  <div class="sheet-head"><h2>Settings</h2><button class="sheet-close icon" type="button" aria-label="Close">×</button></div>
+  <div id="settingsBody" class="sheet-body"></div>
+</section>
+<section id="picker" class="sheet" hidden aria-label="Mantras">
+  <div class="sheet-head"><h2>Mantras</h2><button class="sheet-close icon" type="button" aria-label="Close">×</button></div>
+  <div id="pickerBody" class="sheet-body"></div>
+</section>
+<div id="toast" role="status" aria-live="polite"></div>
+<noscript>This page needs JavaScript and WebGL.</noscript>
+</body>
+</html>
