@@ -56,9 +56,9 @@
     <svg class="pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>
     <svg class="play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
   </button>
-  <div class="speed" role="group" aria-label="Seconds per round">
+  <div class="speed" role="group" aria-label="Seconds per recitation">
     <button id="fasterBtn" class="icon" type="button" aria-label="Faster by 0.05 s">−</button>
-    <button id="periodBtn" type="button" aria-label="Seconds per round"></button>
+    <button id="periodBtn" type="button" aria-label="Seconds per recitation"></button>
     <button id="slowerBtn" class="icon" type="button" aria-label="Slower by 0.05 s">+</button>
   </div>
   <button id="tapBtn" class="pill" type="button" aria-label="Tap tempo: tap at the start of each recitation">Tap</button>
@@ -66,6 +66,11 @@
     <span id="countBead"></span><span class="sep">·</span><span id="countMala"></span>
   </button>
 </footer>
+
+<div id="phase" class="phase" hidden aria-live="polite">
+  <span id="phaseName"></span><span id="phaseHint"></span>
+  <span class="phase-track"><span id="phaseBar"></span></span>
+</div>
 
 <aside id="readout" class="readout" hidden aria-live="off" aria-label="The syllable at the front">
   <div id="readTib" class="bo"></div>

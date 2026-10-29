@@ -26,15 +26,3 @@ export function withVariant(mantra, variantId) {
   };
 }
 
-// Every mantra the page can show, each variant on its own, as 'id' or
-// 'id/variant' — the choices for sharing one garland.
-export function allMantraKeys() {
-  return MANTRAS.flatMap(m => (m.variants?.length ? m.variants.map(v => ({ key: `${m.id}/${v.id}`, mantra: withVariant(m, v.id), label: `${m.name} · ${v.label}` }))
-    : [{ key: m.id, mantra: m, label: m.name }]));
-}
-
-export function mantraByKey(key) {
-  const [id, variant] = String(key).split('/');
-  const m = findMantra(id);
-  return m ? withVariant(m, variant) : null;
-}

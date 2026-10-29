@@ -26,9 +26,12 @@ export function defaultsFor(mantra) {
     'seat.sun': !!mantra.seats?.sun,
     'seat.moon': !!mantra.seats?.moon,
     'seat.petals': mantra.seats?.petals ?? 16,   // 4 | 8 | 16 | 1000
-    join: '',                          // other mantras in the same garland: 'id' or 'id/variant', comma-separated
+    repeat: 1,                         // the mantra 1, 2 or 3 times round the garland
     readout: false,                    // the front syllable's phonetics at the side
     rays: 0,
+    lights: false,                     // offering lights: up, back, down
+    'lights.amount': 0.5,
+    'lights.phase': 30,                // seconds each phase lasts: 10 | 30 | 60
     background: 'night',               // 'night' | 'black' | 'stars'
     countMode: 'auto',                 // 'auto' (each round) | 'manual' (tap)
     malaSize: 108,

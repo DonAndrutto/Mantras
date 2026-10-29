@@ -6,33 +6,16 @@
 // angle and any camera. A syllable at angle φ stands at (sin φ, 0, cos φ), so
 // φ = 0 is the front and φ grows counter-clockwise seen from above.
 import * as THREE from 'three';
-import { tibetanSyllables, phoneticWords } from './tibetan.js';
+import { tibetanSyllables, ringSyllables } from './tibetan.js';
 import { makeGlyphSet, glyphMaterial, softLightMaterial } from './glyphs.js';
 import { createSeats } from './seats.js';
 
 const TAU = Math.PI * 2;
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 
-// The air between two mantras sharing one garland, in em.
-const BETWEEN = 1.4;
-
-// The syllables of a ring, and of any mantras joined to it in the same
-// garland: Tibetan, phonetics, and the extra air after each.
-function ringSyllables(parts) {
-  const tibetan = [], phonetics = [], after = [];
-  for (const part of parts) {
-    const t = tibetanSyllables(part.text);
-    const p = phoneticWords(part.phonetics);
-    tibetan.push(...t);
-    phonetics.push(...(p.length === t.length ? p : t));
-    after.push(...t.map((_, i) => (parts.length > 1 && i === t.length - 1 ? BETWEEN : 0)));
-  }
-  return { tibetan, phonetics, after };
-}
-
-// own: how many of the tokens are the ring's own mantra; the letters are
-// sized from it alone, and a garland joined by other mantras grows wider
-// rather than its letters smaller.
+// own: how many syllables one recitation has. The ring keeps its size: held
+// twice or three times, the mantra runs closer together round the same ring,
+// and the letters give way only once they would otherwise touch.
 function ringLayout(ring, tokens, after, set, script, own = tokens.length) {
   const adv = tokens.map(t => set.get(t).advance);
   const gap = script === 'phonetics' ? (ring.gapPhonetics ?? 0.4) : (ring.gap ?? 0.3);
@@ -47,26 +30,24 @@ function ringLayout(ring, tokens, after, set, script, own = tokens.length) {
     const c0 = centers[0];
     centers = centers.map(c => c - c0);
   }
-  // Em size in radii at the ring's own radius: 'auto' gives the letters `fill`
-  // of the ring; a fixed size is held back only where neighbours would touch.
+  // Em size in radii: 'auto' gives one recitation's letters `fill` of the
+  // ring; a fixed size is held back only where neighbours would touch.
   const r0 = ring.radius ?? 1;
-  const sumAdv = adv.slice(0, own).reduce((a, b) => a + b, 0) || 1;
-  const slotsOf = n => adv.slice(0, n).reduce((a, b, i) => a + b + gap + (i < n - 1 ? after[i] : 0), 0) || 1;
-  const sumSlots = slotsOf(own);
-  // joined mantras: the ring takes part of the extra length, the letters the rest
-  const ratio = Math.max(1, (adv.reduce((a, b, i) => a + b + gap + after[i], 0) || 1) / sumSlots);
-  const grow = Math.pow(ratio, 0.6);
-  const auto = ((TAU * r0) / sumSlots) * (ring.fill ?? 1);
+  const ownSlots = adv.slice(0, own).reduce((a, b) => a + b + gap, 0) || 1;
+  const allSlots = adv.reduce((a, b, i) => a + b + gap + after[i], 0) || 1;
+  const allAdv = adv.reduce((a, b) => a + b, 0) || 1;
+  const times = allSlots / ownSlots;
   let size;
-  if (ring.letterSize === 'auto') size = auto;
-  else if (script === 'phonetics') size = Math.min(ring.letterSize, (TAU * r0) / sumSlots);
-  else size = Math.min(ring.letterSize, (TAU * r0 * 0.98) / sumAdv);
-  return { centers, size: size * (grow / ratio), grow };
+  if (ring.letterSize === 'auto') {
+    const fill = ring.fill ?? 1;
+    size = ((TAU * r0) / ownSlots) * fill * Math.min(1, 0.85 / (fill * times));
+  } else if (script === 'phonetics') size = Math.min(ring.letterSize, (TAU * r0) / allSlots);
+  else size = Math.min(ring.letterSize, (TAU * r0 * 0.98) / allAdv);
+  return { centers, size };
 }
 
 export class Stage {
-  // joined: mantras whose turning ring joins this one's in the same garland
-  constructor({ mantra, settings, joined = [] }) {
+  constructor({ mantra, settings }) {
     this.mantra = mantra;
     this.group = new THREE.Group();
     this.pal = mantra.palette;
@@ -75,15 +56,14 @@ export class Stage {
     this.front = null;   // { ring, index } of the syllable nearest the viewer
 
     const phon = settings.script === 'phonetics';
-    const joinedRings = joined.map(m => m.rings.find(r => (r.turns ?? 1) !== 0)).filter(Boolean);
     mantra.rings.forEach((ring, ri) => {
       const script = phon ? 'phonetics' : 'tibetan';
-      const syl = ringSyllables(ri === 0 ? [ring, ...joinedRings] : [ring]);
+      const syl = ringSyllables(ring, ri === 0 ? settings.repeat : 1);
       const tokens = phon ? syl.phonetics : syl.tibetan;
       const set = makeGlyphSet(tokens, { script, px: tokens.length > 40 ? 96 : 160, radius: ring.blur ?? 0.25 });
       this.disposables.push(set);
       const own = tibetanSyllables(ring.text).length;
-      const { centers, size, grow } = ringLayout(ring, tokens, syl.after, set, script, own);
+      const { centers, size } = ringLayout(ring, tokens, syl.after, set, script, own);
       const items = tokens.map((t, i) => {
         const g = set.get(t);
         const material = glyphMaterial(g.texture, this.pal);
@@ -93,7 +73,7 @@ export class Stage {
         return { mesh, material, c: centers[i] };
       });
       const height = Math.max(...tokens.map(t => set.get(t).height));
-      this.rings.push({ spec: ring, items, size, grow, height, tibetan: syl.tibetan, phonetics: syl.phonetics });
+      this.rings.push({ spec: ring, items, size, height, tibetan: syl.tibetan, phonetics: syl.phonetics });
     });
 
     const seed = mantra.seed;
@@ -133,7 +113,7 @@ export class Stage {
     let half = 0;
     for (const r of this.rings) half = Math.max(half, (r.size * r.height) / 2);
     const seedTop = this.seedSize * (this.mantra.seed.lift + this.seedHeight / 2);
-    const radius = Math.max(...this.rings.map(r => (r.spec.radius ?? 1) * r.grow));
+    const radius = Math.max(...this.mantra.rings.map(r => r.radius ?? 1));
     return { radius, half, seedTop };
   }
 
@@ -181,7 +161,7 @@ export class Stage {
     this.seed.quaternion.copy(this._q);
     const su = this.seedMaterial.uniforms;
     su.opacity.value = settings.seedOpacity;
-    su.glow.value = settings.glow * (0.30 + 0.22 * breath);
+    su.glow.value = settings.glow * (0.30 + 0.22 * breath + 0.5 * (this.absorb ?? 0));
     const seedView = this._toView(this.seed.position, new THREE.Vector3());
     const seedR = (seedEm * this.seedHeight * 0.5) / seedView.z;
 
@@ -194,7 +174,7 @@ export class Stage {
       const turns = s.turns ?? 1;
       const order = (turns !== 0 ? settings.order : s.order) === 'ccw' ? 1 : -1;
       const scale = s.scaleWith === 'seed' ? settings.seedScale : settings.ringScale;
-      const radius = (s.radius ?? 1) * scale * r.grow;
+      const radius = (s.radius ?? 1) * scale;
       const em = r.size * scale * (s.scaleWith === 'seed' ? 1 : settings.letterScale);
       const alpha = spin * rot * turns;
       const op = s.opacity || { min: 0.7, max: 0.7 };
@@ -233,7 +213,7 @@ export class Stage {
 
     // The seat lies below both the seed and the garland's lowest letters,
     // so the garland turns above the discs, within their rim.
-    const width = (this.mantra.rings[0]?.radius ?? 1) * (this.rings[0]?.grow ?? 1) * settings.ringScale;
+    const width = (this.mantra.rings[0]?.radius ?? 1) * settings.ringScale;
     const ringHalf = this.rings[0] ? this.rings[0].size * this.rings[0].height * settings.ringScale * settings.letterScale / 2 : 0;
     const seedBottom = this.seed.position.y - seedEm * this.seedBelow;
     const gap = Math.max(0.025 * width, 0.12 * seedEm);

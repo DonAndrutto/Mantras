@@ -3,8 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile, access } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
-import { MANTRAS, withVariant, allMantraKeys, mantraByKey } from '../mantras/index.js';
-import { tibetanSyllables, phoneticWords, ringTokens } from '../js/tibetan.js';
+import { MANTRAS, withVariant } from '../mantras/index.js';
+import { tibetanSyllables, phoneticWords, ringTokens, ringSyllables } from '../js/tibetan.js';
 
 const root = new URL('../', import.meta.url);
 
@@ -17,11 +17,14 @@ test('syllables keep their marks: tsheg, shad, visarga, terma', () => {
   assert.deepEqual(phoneticWords(' OM  AH HUNG '), ['OM', 'AH', 'HUNG']);
 });
 
-test('every mantra and variant can join a garland by its key', () => {
-  const keys = allMantraKeys().map(k => k.key);
-  assert.ok(keys.includes('kurukulle/accomplishment') && keys.includes('green-tara'));
-  for (const k of keys) assert.ok(mantraByKey(k)?.rings.length, k);
-  assert.equal(mantraByKey('nonsense'), null);
+test('a garland can hold its mantra twice or three times over', () => {
+  const ring = { text: 'ཨོཾ་ཏཱ་རེ་ཏུཏྟཱ་རེ་ཏུ་རེ་སྭཱཧཱ།', phonetics: 'om tā re tuttā re tu re svāhā' };
+  const once = ringSyllables(ring, 1), thrice = ringSyllables(ring, 3);
+  assert.equal(thrice.tibetan.length, 3 * once.tibetan.length);
+  assert.deepEqual(thrice.tibetan.slice(8, 16), once.tibetan);
+  assert.deepEqual(thrice.phonetics.slice(16), once.phonetics);
+  assert.deepEqual(once.after, once.after.map(() => 0));
+  assert.deepEqual(thrice.after.map((a, i) => (a ? i : -1)).filter(i => i >= 0), [7, 15, 23]);
 });
 
 // every mantra, and every variant of one, as the page sees it
