@@ -4,6 +4,7 @@
 
 export default {
   id: 'vajrasattva',
+  visualization: { vajra: true },
   name: 'Vajrasattva',
   subtitle: 'Hundred-syllable mantra around HUNG',
   tibetanName: 'རྡོར་སེམས་ཡིག་བརྒྱ།',

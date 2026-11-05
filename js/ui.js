@@ -53,7 +53,7 @@ export function buildSettings(root, ctx) {
     const r = row(label, out, input);
     sync(s => {
       input.value = s[key]; out.textContent = format(s[key]);
-      if (enabled) r.classList.toggle('disabled', !enabled(s));
+      if (enabled) { input.disabled = !enabled(s); r.classList.toggle('disabled', input.disabled); }
     });
     return r;
   };
@@ -73,7 +73,15 @@ export function buildSettings(root, ctx) {
     return el('label', { class: 'row toggle' }, el('span', { class: 'label', text: label }), input);
   };
 
-  const section = (title, ...rows) => el('section', { class: 'group' }, el('h3', { text: title }), ...rows);
+  const section = (title, ...rows) => el('details', { class: 'group' },
+    el('summary', { text: title }), el('div', { class: 'group-body' }, ...rows));
+  const when = (predicate, ...children) => {
+    const box = el('fieldset', { class: 'conditional' }, ...children);
+    sync(s => { box.hidden = !predicate(s); box.disabled = !predicate(s); });
+    return box;
+  };
+  const percent = v => `${Math.round(v * 100)}%`;
+  const action = (text, fn) => el('button', { type: 'button', class: 'wide', text, onclick: fn });
 
   // ── motion ─────────────────────────────────────────────────────────────
   const periodOut = el('input', { type: 'number', class: 'num', min: PERIOD_MIN, max: PERIOD_MAX, step: '0.01',
@@ -98,15 +106,14 @@ export function buildSettings(root, ctx) {
     pace.textContent = `${(60 / s.period).toFixed(2)} recitations a minute · ${(s.period / syllableCount).toFixed(3)} s a syllable`;
   });
 
-  const motion = section('Motion',
+  const motion = section('Pace',
     el('div', { class: 'row' },
       el('div', { class: 'row-head' }, el('span', { class: 'label', text: 'Seconds per recitation' }), periodOut),
       periodSlider,
       el('div', { class: 'steps' }, fine(-1, '−1'), fine(-0.05, '−0.05'), fine(0.05, '+0.05'), fine(1, '+1')),
       pace),
     el('div', { class: 'row' }, el('div', { class: 'row-head' }, el('span', { class: 'label', text: 'Tap tempo' })), tapBtn, tapStatus),
-    segmented('spin', 'Turning', [['cw', 'Clockwise'], ['ccw', 'Counter-clockwise']], 'seen from above'),
-    segmented('order', 'Syllables follow', [['cw', 'Clockwise'], ['ccw', 'Counter-clockwise']], 'seen from above'),
+    toggle('pinTap', 'Keep Tap tempo in the bottom bar'),
   );
 
   // ── size, view, script ─────────────────────────────────────────────────
@@ -118,28 +125,48 @@ export function buildSettings(root, ctx) {
   );
   const view = section('View',
     segmented('camera', 'Camera', [['fixed', 'Fixed'], ['free', 'Free']]),
-    range('angle', 'Angle', { min: 2, max: 90, step: 0.5, format: v => `${v.toFixed(1)}°`, enabled: s => s.camera === 'fixed' }),
+    range('angle', 'Angle', { min: 2, max: 90, step: 0.5, format: v => `${v.toFixed(1)}°`, enabled: s => s.camera === 'fixed' && (!s['vajra.enabled'] || s['vajra.view'] === 'mantra') }),
     el('div', { class: 'hint', text: 'Free: drag to go round the garland, pinch or scroll to come nearer, two fingers to slide.' }),
     el('button', { type: 'button', class: 'wide', text: 'Reset view', onclick: () => ctx.actions.resetView() }),
   );
-  const seat = section('Seat',
+  const seat = section('Lotus & discs',
     ...SEATS.map(x => toggle(`seat.${x.key}`, x.label)),
-    segmented('seat.petals', 'Lotus petals', PETALS.map(n => [n, n === 1000 ? 'Thousand' : String(n)])),
-    el('div', { class: 'hint', text: 'From the bottom: lotus, sun, moon. The discs are a little wider than the garland, which turns above them; the seed hovers just above the uppermost.' }),
+    when(s => s['seat.lotus'],
+      segmented('seat.petals', 'Lotus petals', PETALS.map(n => [n, n === 1000 ? 'Thousand' : String(n)])),
+      segmented('seat.color', 'Lotus colour', [['pink', 'Rose'], ['white', 'White']])),
+    when(s => SEATS.some(x => s[`seat.${x.key}`]),
+      segmented('seat.appearance', 'Surface', [['solid', 'Solid'], ['translucent', 'Translucent']]),
+      when(s => s['seat.appearance'] === 'translucent',
+        when(s => !s['seat.independent'], range('seat.opacity', 'Seat opacity', { min: 0, max: 1, step: 0.01, format: percent })),
+        toggle('seat.independent', 'Adjust separately'),
+        when(s => s['seat.independent'], ...SEATS.map(x => when(s => s[`seat.${x.key}`],
+          range(`seat.${x.key}.opacity`, `${x.label} opacity`, { min: 0, max: 1, step: 0.01, format: percent }))))),
+      el('div', { class: 'hint', text: 'From below: lotus, sun, moon. In vajra mode, the seat supports the whole vajra.' })),
   );
-  const garland = section('Garland',
+  const vajra = mantra.visualization?.vajra ? section('Vajrasattva vajra',
+    toggle('vajra.enabled', 'Within a five-pronged vajra'),
+    when(s => s['vajra.enabled'],
+      segmented('vajra.view', 'Framing', [['mantra', 'Mantra'], ['hub', 'Hub'], ['whole', 'Whole vajra']]),
+      range('vajra.opacity', 'Hub opacity', { min: 0, max: 1, step: 0.01, format: percent }),
+      el('div', { class: 'hint', text: 'HŪṂ, the heart mantra and the hundred-syllable garland rest inside the central hub. Mantra is a close-up of the letters; Hub isolates the central sphere; Whole vajra shows both ends and the seat.' })),
+    action('Use Ngondro arrangement', () => ctx.actions.ngondro()),
+    el('div', { class: 'hint', text: 'White lotus, moon and five-pronged vajra. Keeps your pace and count.' }),
+  ) : null;
+  const garland = section('Garland & direction',
+    segmented('spin', 'Turning', [['cw', 'Clockwise'], ['ccw', 'Counter-clockwise']], 'seen from above'),
+    segmented('order', 'Syllables follow', [['cw', 'Clockwise'], ['ccw', 'Counter-clockwise']], 'seen from above'),
     segmented('repeat', 'The mantra in the garland', [[1, 'Once'], [2, 'Twice'], [3, 'Three times']]),
     el('div', { class: 'hint', text: 'Held more than once, the mantra runs closer together round the same garland. The speed stays per recitation; a round counts each one.' }),
   );
   const script = section('Script',
     segmented('script', 'Syllables on the ring', [['tibetan', 'བོད་ཡིག', 'bo'], ['phonetics', 'Phonetics']]),
-    toggle('readout', 'Phonetics at the side (Aa)'),
+    toggle('readout', 'Show phonetic readout'),
   );
 
   // ── light & effects ────────────────────────────────────────────────────
   const fxRows = (mantra.effects || []).flatMap(fx => [
     toggle(`fx.${fx.id}`, fx.label),
-    range(`fx.${fx.id}.amount`, 'Amount', { min: 0, max: 1, step: 0.01, format: v => `${Math.round(v * 100)}%`, enabled: s => s[`fx.${fx.id}`] }),
+    when(s => s[`fx.${fx.id}`], range(`fx.${fx.id}.amount`, `${fx.label}: amount`, { min: 0, max: 1, step: 0.01, format: percent })),
   ]);
   const light = section('Light & effects',
     range('glow', 'Glow', { min: 0, max: 3, step: 0.005, format: v => `× ${v.toFixed(3)}` }),
@@ -148,11 +175,11 @@ export function buildSettings(root, ctx) {
     range('seedOpacity', 'Seed syllable: opacity', { min: 0, max: 1, step: 0.01, format: v => `${Math.round(v * 100)}%` }),
     range('veil', 'Syllables veil the seed', { min: 0, max: 1, step: 0.01, format: v => `${Math.round(v * 100)}%` }),
     range('rays', 'Light rays', { min: 0, max: 1, step: 0.01, format: v => `${Math.round(v * 100)}%` }),
-    segmented('background', 'Background', [['night', 'Night'], ['black', 'Black'], ['stars', 'Stars']]),
     toggle('lights', 'Offering lights'),
-    el('div', { class: 'hint', text: 'Lights rise to the buddhas, return into the seed and the mantra, then go down to beings in saṃsāra — round and round, each phase for the time chosen.' }),
-    segmented('lights.phase', 'Each phase', [[10, '10 s'], [30, '30 s'], [60, '1 min']]),
-    range('lights.amount', 'Lights', { min: 0, max: 1, step: 0.01, format: v => `${Math.round(v * 100)}%`, enabled: s => s.lights }),
+    when(s => s.lights,
+      el('div', { class: 'hint', text: 'Lights rise to the buddhas, return into the seed and mantra, then descend to beings in saṃsāra.' }),
+      segmented('lights.phase', 'Each phase', [[10, '10 s'], [30, '30 s'], [60, '1 min']]),
+      range('lights.amount', 'Lights', { min: 0, max: 1, step: 0.01, format: percent })),
     ...fxRows,
   );
 
@@ -177,7 +204,10 @@ export function buildSettings(root, ctx) {
   );
 
   // ── screen ─────────────────────────────────────────────────────────────
-  const screen = section('Screen',
+  const screen = section('Screen & performance',
+    segmented('background', 'Background', [['night', 'Night'], ['black', 'Black'], ['stars', 'Stars']]),
+    segmented('quality', 'Rendering quality', [['auto', 'Automatic'], ['low', 'Light'], ['high', 'High']]),
+    el('button', { id: 'vrBtn', type: 'button', class: 'wide', text: 'Enter VR', hidden: !ctx.canVR, onclick: () => ctx.actions.vr() }),
     toggle('keepAwake', 'Keep the screen awake'),
     ctx.canFullscreen
       ? el('button', { type: 'button', class: 'wide', text: 'Full screen', onclick: () => ctx.actions.fullscreen() })
@@ -193,8 +223,41 @@ export function buildSettings(root, ctx) {
     el('div', { class: 'hint', text: 'Each keeps its own pace, settings and count.' }),
   ) : null;
 
-  root.replaceChildren(...[variants, motion, size, view, seat, garland, script, light, counter, screen].filter(Boolean));
+  motion.open = true; counter.open = true;
+  document.getElementById('paceBody').replaceChildren(motion);
+  document.getElementById('counterBody').replaceChildren(counter);
+  const tabs = el('div', { class: 'settings-tabs', role: 'tablist', 'aria-label': 'Settings category' });
+  const panels = [
+    ['practice', 'Practice', [
+      action('Pace & tap tempo', () => ctx.actions.panel('pace')),
+      action('Counter', () => ctx.actions.panel('counter')),
+      toggle('stillness', 'Stillness — stop all animation'),
+      el('p', { class: 'hint', text: 'Stillness also stops automatic counting. Manual counting remains available.' }),
+      variants, script, garland,
+    ]],
+    ['visualization', 'Visualization', [vajra, seat, light]],
+    ['view', 'View', [view, size, screen]],
+  ];
+  const buttons = [], bodies = [];
+  function select(i, focus = false) {
+    buttons.forEach((b, j) => { b.setAttribute('aria-selected', String(j === i)); b.tabIndex = j === i ? 0 : -1; bodies[j].hidden = j !== i; });
+    if (focus) buttons[i].focus();
+  }
+  panels.forEach(([id, title, children], i) => {
+    const button = el('button', { id: `tab-${id}`, type: 'button', role: 'tab', text: title,
+      'aria-controls': `panel-${id}`, onclick: () => select(i),
+      onkeydown: e => {
+        const j = e.key === 'ArrowRight' ? (i + 1) % 3 : e.key === 'ArrowLeft' ? (i + 2) % 3
+          : e.key === 'Home' ? 0 : e.key === 'End' ? 2 : -1;
+        if (j >= 0) { e.preventDefault(); select(j, true); }
+      },
+    });
+    const body = el('div', { id: `panel-${id}`, role: 'tabpanel', 'aria-labelledby': `tab-${id}`, tabindex: 0 }, ...children.filter(Boolean));
+    tabs.append(button); buttons.push(button); bodies.push(body);
+  });
+  root.replaceChildren(tabs, ...bodies); select(0);
   return { refresh: () => { for (const f of syncs) f(ctx.settings); } };
+
 }
 
 export function buildPicker(root, mantras, current, onPick) {

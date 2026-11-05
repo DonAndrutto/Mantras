@@ -188,3 +188,63 @@ input[type=range]::-moz-range-thumb { width: 18px; height: 18px; border-radius: 
 .phase-track { width: 100%; height: 2px; margin-top: 4px; background: color-mix(in srgb, var(--text) 14%, transparent); border-radius: 1px; overflow: hidden; }
 #phaseBar { display: block; height: 100%; background: var(--accent); transform-origin: 0 50%; transform: scaleX(0); }
 body.bare .phase { opacity: 0.7; }
+
+/* Compact practice controls and three short settings categories. */
+[hidden] { display: none !important; }
+.chrome.bottom { flex-wrap: nowrap; gap: 8px; }
+.pace-button { min-width: 82px; justify-content: center; font-variant-numeric: tabular-nums; }
+#periodBtn.pace-button { height: 44px; background: var(--panel); border: 1px solid var(--line); }
+.count { gap: 5px; min-width: 0; font-size: 13px; }
+#countBtn { padding: 0 12px; }
+#tapBtn { padding: 0 12px; }
+#pickerBtn { max-width: calc(100% - 64px); }
+.sheet { max-height: 84dvh; }
+.sheet-body { overscroll-behavior: contain; }
+.sheet-head h2 { font-size: 13px; letter-spacing: 0.06em; }
+.sheet-close { width: 44px; height: 44px; }
+.settings-tabs { display: flex; gap: 4px; position: sticky; top: -4px; z-index: 2;
+  background: #0a0f1a; padding: 8px 0 14px; margin-bottom: 10px; }
+.settings-tabs button { flex: 1; min-height: 44px; padding: 8px 5px; border: 1px solid var(--line); border-radius: 10px;
+  background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; }
+.settings-tabs button[aria-selected=true] { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--text); border-color: var(--accent); }
+.group { padding: 0; }
+.group > summary { min-height: 52px; padding: 16px 4px; color: var(--text); cursor: pointer; font-size: 14px; }
+.group-body { padding: 6px 2px 12px; }
+.group summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.conditional { border: 0; padding: 0; margin: 0; min-width: 0; }
+.label { font-size: 13px; letter-spacing: 0; text-transform: none; }
+.hint { font-size: 13px; }
+.row-head .hint { font-size: 12px; }
+.seg button, .step, .wide { min-height: 44px; font-size: 13px; }
+.num { height: 44px; font-size: 16px; }
+.toggle { min-height: 44px; gap: 12px; }
+.toggle .label { font-size: 14px; letter-spacing: 0; }
+.toggle input { flex: none; }
+input[type=range] { height: 44px; }
+input:disabled, button:disabled { cursor: default; }
+.mantra { gap: 12px; padding: 12px; margin-bottom: 6px; }
+.mantra .seed { font-size: 30px; width: 42px; }
+.mantra .name { font-size: 15px; }
+.mantra .tib { font-size: 14px; }
+.mantra:not([aria-current=true]) .sub { display: none; }
+.vajra-views { top: calc(66px + var(--safe-t)); left: 50%; right: auto; transform: translateX(-50%);
+  width: max-content; max-width: calc(100vw - 24px); padding: 4px; gap: 2px; border: 1px solid var(--line);
+  background: var(--panel); border-radius: 24px; }
+.vajra-views button { min-height: 40px; border: 0; border-radius: 20px; padding: 0 14px; background: transparent;
+  color: var(--muted); font-size: 13px; cursor: pointer; }
+.vajra-views button[aria-pressed=true] { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); }
+body.has-vajra .phase { top: calc(122px + var(--safe-t)); }
+body.bare .vajra-views { opacity: 0; pointer-events: none; }
+@media (max-width: 360px) {
+  .chrome.bottom { gap: 5px; padding-left: calc(8px + var(--safe-l)); padding-right: calc(8px + var(--safe-r)); }
+  .round { width: 44px; height: 44px; }
+  .pace-button { padding: 0 10px; }
+  #countBtn, #tapBtn { padding: 0 9px; }
+}
+@media (min-width: 760px) { .sheet { max-height: none; } }
+@media (max-height: 500px) { .sheet { max-height: 96dvh; } }
+@media (orientation: landscape) and (min-width: 480px) {
+  .vajra-views { top: calc(12px + var(--safe-t)); }
+  body.has-vajra .top #pickerBtn { max-width: calc((100vw - 290px) / 2); }
+  body.has-vajra .phase { top: calc(66px + var(--safe-t)); }
+}
