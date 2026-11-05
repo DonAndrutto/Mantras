@@ -58,12 +58,19 @@ const ctx = {
     if (!(key in defaults)) return;
     value = validateSetting(key, value, defaults[key]);
     if (key === 'vajra.enabled' && !mantra.visualization?.vajra) return;
-    if (settings[key] === value && !(key === 'vajra.view' && settings.camera === 'free')) return;
+    if (settings[key] === value && !(key === 'vajra.view' && settings.camera === 'free')
+      && !(key === 'phoneticsBelow' && value && settings.script !== 'tibetan')) return;
     if (key === 'seat.independent' && value) {
       for (const part of ['lotus', 'sun', 'moon']) settings[`seat.${part}.opacity`] = settings['seat.opacity'];
     }
     settings[key] = value;
-    if (key === 'script' || key === 'repeat') buildStage();
+    if (key === 'phoneticsBelow' && value) settings.script = 'tibetan';
+    if (key === 'script' && value === 'phonetics') settings.phoneticsBelow = false;
+    if (key === 'script' || key === 'repeat' || key === 'phoneticsBelow') buildStage();
+    if ((key === 'camera' && value === 'fixed') || key === 'vajra.view') {
+      // Consume residual orbit momentum before restoring the fixed pose.
+      controls.enableDamping = false; controls.update(); controls.enableDamping = true;
+    }
     if (key === 'repeat') maxRecited = Math.floor((rot * value) / TAU + 1e-9);
     if (key === 'vajra.view') settings.camera = 'fixed';
     if (['angle', 'camera', 'vajra.view', 'vajra.enabled', 'ringScale', 'seedScale', 'letterScale', 'highlight'].includes(key) || key.startsWith('seat.')) { poseDirty = true; snap = settings.camera === 'fixed'; controls.enabled = settings.camera === 'free' && !inVR; }
@@ -159,6 +166,9 @@ function applyLook() {
 function refreshUI() {
   ui?.refresh();
   $('periodBtn').textContent = formatPeriod(settings.period);
+  $('phoneticsBtn').setAttribute('aria-pressed', String(settings.script === 'tibetan' && settings.phoneticsBelow));
+  $('fixedCameraBtn').setAttribute('aria-pressed', String(settings.camera === 'fixed'));
+  $('freeCameraBtn').setAttribute('aria-pressed', String(settings.camera === 'free'));
   $('tapBtn').hidden = !settings.pinTap;
   const vajraOn = !!mantra.visualization?.vajra && settings['vajra.enabled'];
   $('vajraViews').hidden = !vajraOn;
@@ -337,6 +347,12 @@ async function updateWakeLock() {
 
 function wireChrome() {
   $('playBtn').onclick = togglePause;
+  $('phoneticsBtn').onclick = () => ctx.set('phoneticsBelow', !(settings.script === 'tibetan' && settings.phoneticsBelow));
+  $('fixedCameraBtn').onclick = () => ctx.set('camera', 'fixed');
+  $('freeCameraBtn').onclick = () => {
+    ctx.set('camera', 'free');
+    toast('Drag to turn · pinch or scroll to zoom');
+  };
   $('settingsBtn').onclick = () => openSheet('settings');
   $('pickerBtn').onclick = () => openSheet('picker');
   $('periodBtn').onclick = () => openSheet('pace');
@@ -347,11 +363,15 @@ function wireChrome() {
   $('scrim').onclick = () => closeSheets();
 
   // a tap on the scene (not a drag) hides or shows the bars
-  let down = null;
+  let down = null, fixedDragHintShown = false;
   canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; });
   canvas.addEventListener('pointerup', e => {
     if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8 && performance.now() - down.t < 350) {
       toggleChrome();
+    }
+    if (down && settings.camera === 'fixed' && !fixedDragHintShown && Math.hypot(e.clientX - down.x, e.clientY - down.y) >= 8) {
+      fixedDragHintShown = true;
+      toast('Choose Free below to drag and turn the view');
     }
     down = null;
   });
@@ -368,6 +388,7 @@ function wireChrome() {
     else if (k === '{') setPeriod(settings.period - 1);
     else if (k === '}') setPeriod(settings.period + 1);
     else if (k === 'h' || k === 'H') toggleChrome();
+    else if (k === 'c' || k === 'C') (settings.camera === 'fixed' ? $('freeCameraBtn') : $('fixedCameraBtn')).click();
     else if (k === 'f' || k === 'F') toggleFullscreen();
     else if (k === 'p' || k === 'P') ctx.set('readout', !settings.readout);
     else if (k === 'r' || k === 'R') ctx.set('script', settings.script === 'tibetan' ? 'phonetics' : 'tibetan');

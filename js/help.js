@@ -3,6 +3,7 @@ const TARGETS = [
   ['homeBtn', 'Welcome', 'top'], ['pickerBtn', 'Choose mantra', 'top'],
   ['donateBtn', 'Support', 'top'], ['helpBtn', 'Help', 'top'], ['settingsBtn', 'Settings', 'top'],
   ['playBtn', 'Pause / play', 'bottom'], ['periodBtn', 'Pace', 'bottom'],
+  ['phoneticsBtn', 'Latin below Tibetan', 'bottom'], ['fixedCameraBtn', 'Recenter', 'bottom'], ['freeCameraBtn', 'Drag to turn', 'bottom'],
   ['tapBtn', 'Tap tempo', 'bottom'], ['countBtn', 'Counter', 'bottom'],
 ];
 export function createControlHelp(sheets) {
@@ -12,8 +13,11 @@ export function createControlHelp(sheets) {
     if (panel.hidden) return;
     labels.replaceChildren();
     const targets = TARGETS.map(([id, text, zone]) => ({ node: document.getElementById(id), text, zone }));
-    document.querySelectorAll('[data-vajra-view]').forEach(node => targets.push({ node, text: node.textContent, zone: 'bottom' }));
-    const rows = { top: [], bottom: [] };
+    document.querySelectorAll('[data-vajra-view]').forEach(node => targets.push({ node, text: node.textContent, zone: 'top' }));
+    const occupied = [];
+    const controls = targets.filter(({node}) => node && !node.hidden && !node.closest('[hidden]'))
+      .map(({node}) => node.getBoundingClientRect()).filter(r => r.width && r.height);
+    const overlaps = (a, b) => a.left < b.right + 5 && a.right + 5 > b.left && a.top < b.bottom + 5 && a.bottom + 5 > b.top;
     const width = document.documentElement.clientWidth;
     for (const { node, text, zone } of targets) {
       if (!node || node.hidden || node.closest('[hidden]')) continue;
@@ -23,14 +27,18 @@ export function createControlHelp(sheets) {
       chip.className = 'help-chip'; chip.textContent = text; labels.append(chip);
       const w = chip.offsetWidth;
       const x = Math.max(8, Math.min(width - w - 8, r.x + r.width / 2 - w / 2));
-      let row = 0;
-      while (rows[zone][row]?.some(([a, b]) => x < b + 8 && x + w + 8 > a)) row++;
-      (rows[zone][row] ||= []).push([x, x + w]);
       const edge = zone === 'top' ? r.bottom : r.top;
-      const y = zone === 'top' ? edge + 12 + row * 30 : edge - 38 - row * 30;
+      let y = zone === 'top' ? edge + 12 : edge - 38;
+      const h = chip.offsetHeight;
+      let box = {left:x, right:x+w, top:y, bottom:y+h};
+      while ([...controls, ...occupied].some(other => overlaps(box, other))) {
+        y += zone === 'top' ? 30 : -30;
+        box = {left:x, right:x+w, top:y, bottom:y+h};
+      }
+      occupied.push(box);
       Object.assign(chip.style, { left: `${x}px`, top: `${y}px` });
       const line = document.createElement('span'); line.className = 'help-line';
-      Object.assign(line.style, { left: `${r.x + r.width / 2}px`, top: `${zone === 'top' ? edge + 3 : y + 24}px`, height: `${9 + row * 30}px` });
+      Object.assign(line.style, { left: `${r.x + r.width / 2}px`, top: `${zone === 'top' ? edge + 3 : y + h}px`, height: `${zone === 'top' ? y - edge - 3 : edge - y - h - 3}px` });
       labels.append(line);
     }
   }

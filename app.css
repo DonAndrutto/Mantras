@@ -350,3 +350,29 @@ body.sheet-open #installInvite { visibility: hidden; }
   .welcome-lede { display: none; }
   .welcome-heading { padding-top: 14px; }
 }
+
+/* Two frequently used choices, available without opening a sheet. */
+.quick-controls { bottom: calc(78px + var(--safe-b)); justify-content: center; gap: 10px; }
+#phoneticsBtn { font-size: 12px; padding: 0 12px; }
+#phoneticsBtn > span { font: 500 19px 'EB Garamond', Georgia, serif; }
+#phoneticsBtn[aria-pressed=true] { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--panel)); }
+.camera-switch { display: inline-flex; border: 1px solid var(--line); border-radius: 23px; padding: 2px; background: var(--panel); backdrop-filter: blur(6px); }
+.camera-switch button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; min-width: 62px; border: 0; border-radius: 20px; padding: 0 12px; background: none; color: var(--muted); font-size: 12px; cursor: pointer; }
+.camera-switch button[aria-pressed=true] { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); }
+.camera-switch svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+#toast { bottom: calc(136px + var(--safe-b)); max-width: calc(100vw - 32px); text-align: center; }
+#installInvite { bottom: calc(136px + var(--safe-b)); }
+@media (max-width: 520px) and (orientation: portrait) { .readout { bottom: calc(140px + var(--safe-b)); } }
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 480px) {
+  .quick-controls { left: 0; right: auto; bottom: calc(14px + var(--safe-b)); }
+  .chrome.bottom { left: auto; right: 0; }
+}
+
+@media (orientation: landscape) and (max-height: 500px) and (min-width: 480px) and (max-width: 699px) {
+  .quick-controls { flex-direction: column; align-items: stretch; gap: 6px; }
+  .camera-switch { justify-content: center; }
+  #phoneticsBtn { justify-content: center; }
+}
+@media (max-height: 500px) {
+  .help-center h2, .help-center p { display: none; }
+}

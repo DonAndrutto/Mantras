@@ -34,6 +34,10 @@ test('old preferences and counts survive; malformed saved settings cannot corrup
   assert.equal(loadSettings(vajrasattva)['vajra.view'], 'hub');
   assert.equal(loadSettings(vajrasattva)['seat.opacity'], 0.28);
   assert.equal(loadSettings(tara)['vajra.enabled'], false); assert.equal(loadSettings(tara).pinTap, true);
+  storage.set('mantras:settings:green-tara', JSON.stringify({ script: 'phonetics' }));
+  s.phoneticsBelow = true; saveSettings(vajrasattva, s);
+  assert.equal(loadSettings(tara).phoneticsBelow, true);
+  assert.equal(loadSettings(tara).script, 'tibetan');
   storage.set('mantras:count:vajrasattva', '{"total":-4}'); assert.equal(loadCount(vajrasattva), 0);
   storage.set('mantras:prefs', '"invalid"'); storage.set('mantras:settings:vajrasattva', '[]');
   assert.equal(loadSettings(vajrasattva).period, vajrasattva.motion.period);

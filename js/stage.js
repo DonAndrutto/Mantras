@@ -63,6 +63,9 @@ export class Stage {
       const tokens = phon ? syl.phonetics : syl.tibetan;
       const set = makeGlyphSet(tokens, { script, px: tokens.length > 40 ? 96 : 160, radius: ring.blur ?? 0.25 });
       this.disposables.push(set);
+      const paired = !phon && settings.phoneticsBelow;
+      const latin = paired ? makeGlyphSet(syl.phonetics, { script: 'phonetics', px: 128, radius: 0.08 }) : null;
+      if (latin) this.disposables.push(latin);
       const own = tibetanSyllables(ring.text).length;
       const { centers, size } = ringLayout(ring, tokens, syl.after, set, script, own);
       const items = tokens.map((t, i) => {
@@ -71,11 +74,27 @@ export class Stage {
         this.disposables.push(material);
         const mesh = new THREE.Mesh(g.geometry, material);
         this.group.add(mesh);
-        return { mesh, material, c: centers[i] };
+        let phonetic = null, labelScale = 0, labelOffset = 0, labelBottom = 0, labelWidth = 0;
+        if (latin) {
+          const pg = latin.get(syl.phonetics[i]);
+          const pm = glyphMaterial(pg.texture, this.pal);
+          // One highlight signal for both scripts; only the label's overall light is quieter.
+          pm.uniforms.mixHi = material.uniforms.mixHi;
+          phonetic = new THREE.Mesh(pg.geometry, pm);
+          phonetic.name = `phonetic-${ri}-${i}`;
+          labelScale = Math.min(0.48, Math.max(0.8, g.width * 1.1) / pg.width);
+          labelOffset = g.below + 0.14 + (pg.height - pg.below) * labelScale;
+          labelBottom = labelOffset + pg.below * labelScale;
+          labelWidth = pg.width * labelScale;
+          this.disposables.push(pm);
+          this.group.add(phonetic);
+        }
+        return { mesh, material, phonetic, labelScale, labelOffset, labelBottom, labelWidth, c: centers[i] };
       });
       const height = Math.max(...tokens.map(t => set.get(t).height));
-      const width = Math.max(...tokens.map(t => set.get(t).width));
-      this.rings.push({ spec: ring, items, size, height, width, tibetan: syl.tibetan, phonetics: syl.phonetics });
+      const width = Math.max(...tokens.map(t => set.get(t).width), ...items.map(it => it.labelWidth));
+      const boundHeight = Math.max(height, ...items.map(it => it.labelBottom * 2));
+      this.rings.push({ spec: ring, items, size, height, boundHeight, width, tibetan: syl.tibetan, phonetics: syl.phonetics });
     });
     // the turning syllables' positions: the same vectors, moved every frame
     this._sources = this.rings.filter(r => (r.spec.turns ?? 1) !== 0).flatMap(r => r.items.map(it => it.mesh.position));
@@ -111,6 +130,7 @@ export class Stage {
 
     this._cam = new THREE.Vector3();
     this._q = new THREE.Quaternion();
+    this._down = new THREE.Vector3();
     this._v = new THREE.Vector3();
     this._view = new THREE.Matrix4();
     this._seedView = new THREE.Vector3();
@@ -123,9 +143,9 @@ export class Stage {
       const scale = r.spec.scaleWith === 'seed' ? settings.seedScale : settings.ringScale;
       const letter = r.size * scale * (r.spec.scaleWith === 'seed' ? 1 : settings.letterScale)
         * (1 + (r.spec.highlight?.scale ?? 0) * settings.highlight);
-      half = Math.max(half, Math.abs((r.spec.y ?? 0) * scale) + letter * r.height / 2);
+      half = Math.max(half, Math.abs((r.spec.y ?? 0) * scale) + letter * r.boundHeight / 2);
       radius = Math.max(radius, (r.spec.radius ?? 1) * scale * Math.max(1, r.spec.depth ?? 1)
-        + letter * Math.hypot(r.width, r.height) / 2);
+        + letter * Math.hypot(r.width, r.boundHeight) / 2);
     }
     const em = this.seedSize * settings.seedScale;
     const seedTop = em * (this.mantra.seed.lift + this.seedHeight / 2);
@@ -171,6 +191,7 @@ export class Stage {
     camera.getWorldPosition(this._cam);
     this.group.worldToLocal(this._cam);
     camera.getWorldQuaternion(this._q);
+    this._down.set(0, -1, 0).applyQuaternion(this._q);
     const front = Math.atan2(this._cam.x, this._cam.z);
     const ca = Math.cos(Math.atan2(this._cam.y, Math.hypot(this._cam.x, this._cam.z)));
 
@@ -233,13 +254,23 @@ export class Stage {
         u.veil.value = veil;
         u.mixHi.value = Math.min(1, hl);
         u.glow.value = settings.glow * ((s.glow ?? 0) + (hlSpec?.glow ?? 0) * hl);
+        if (it.phonetic) {
+          // Screen-down keeps the Latin directly beneath its Tibetan when orbiting.
+          it.phonetic.position.copy(m.position).addScaledVector(this._down, size * it.labelOffset);
+          it.phonetic.quaternion.copy(this._q);
+          it.phonetic.scale.setScalar(size * it.labelScale);
+          const pu = it.phonetic.material.uniforms;
+          pu.opacity.value = u.opacity.value * 0.86;
+          pu.veil.value = u.veil.value;
+          pu.glow.value = u.glow.value * 0.5;
+        }
       }
     }
 
     // The seat lies below both the seed and the garland's lowest letters,
     // so the garland turns above the discs, within their rim.
     const width = (this.mantra.rings[0]?.radius ?? 1) * settings.ringScale;
-    const ringHalf = this.rings[0] ? this.rings[0].size * this.rings[0].height * settings.ringScale * settings.letterScale / 2 : 0;
+    const ringHalf = this.rings[0] ? this.rings[0].size * this.rings[0].boundHeight * settings.ringScale * settings.letterScale / 2 : 0;
     const seedBottom = this.seed.position.y - seedEm * this.seedBelow;
     const gap = Math.max(0.025 * width, 0.12 * seedEm);
     const v = this.vajra?.update(settings, this.mantraExtent(settings));
@@ -253,7 +284,10 @@ export class Stage {
     const seated = seat !== null;
     const seatShade = enclosed ? 0 : (seat?.strength ?? 0);
     su.shade.value = seatShade * 0.7;
-    for (const r of this.rings) for (const it of r.items) it.material.uniforms.shade.value = seatShade * 0.4;
+    for (const r of this.rings) for (const it of r.items) {
+      it.material.uniforms.shade.value = seatShade * 0.4;
+      if (it.phonetic) it.phonetic.material.uniforms.shade.value = seatShade * 0.4;
+    }
 
     this.halo.position.copy(this.seed.position);
     this.halo.quaternion.copy(this._q);
