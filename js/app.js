@@ -2,7 +2,7 @@
 // turns the garland, the counter, the bars and the sheets.
 import * as THREE from 'three';
 import { MANTRAS, findMantra, withVariant } from '../mantras/index.js';
-import { loadSettings, saveSettings, defaultsFor, loadCount, saveCount, lastMantra, rememberMantra, loadVariant, saveVariant, PERIOD_MIN, PERIOD_MAX } from './settings.js';
+import { loadSettings, saveSettings, defaultsFor, loadCount, saveCount, lastMantra, rememberMantra, loadVariant, saveVariant, PERIOD_MIN, PERIOD_MAX, validateSetting } from './settings.js';
 import { loadFonts } from './glyphs.js';
 import { Stage } from './stage.js';
 import { fixedPose, createControls } from './camera.js';
@@ -12,7 +12,10 @@ import { createRays } from './effects/rays.js';
 import { createOfferings, PHASES } from './effects/offerings.js';
 import { createStars } from './effects/stars.js';
 import { createBackdrop } from './backdrop.js';
-import { buildSettings, buildPicker, holdRepeat, roundPeriod, formatPeriod } from './ui.js';
+import { buildSettings, buildPicker, roundPeriod, formatPeriod } from './ui.js';
+
+import { createSheets } from './dialogs.js';
+import { createQualityController } from './quality.js';
 
 const TAU = Math.PI * 2;
 const EFFECTS = { nectar: createNectar };
@@ -31,7 +34,7 @@ const scene = new THREE.Scene();
 const backdrop = createBackdrop({ scene });
 const world = new THREE.Group();       // moved into place for VR
 scene.add(world);
-const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 200);
+const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 1000);
 const controls = createControls(camera, canvas);
 const stars = createStars({ parent: world });
 
@@ -40,19 +43,32 @@ let base = null, mantra = null, settings = null, stage = null, effects = [], ui 
 let rot = 0, maxRecited = 0, correction = 0, total = 0, paused = false;
 let poseDirty = true, snap = true, inVR = false;
 const taps = [];
+const sheets = createSheets();
+const quality = createQualityController();
+let vrAvailable = false;
 
 const ctx = {
   get mantra() { return mantra; },
   get base() { return base; },
   get settings() { return settings; },
+  get canVR() { return vrAvailable; },
   canFullscreen: !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen),
   set(key, value) {
-    if (settings[key] === value) return;
+    const defaults = defaultsFor(mantra);
+    if (!(key in defaults)) return;
+    value = validateSetting(key, value, defaults[key]);
+    if (key === 'vajra.enabled' && !mantra.visualization?.vajra) return;
+    if (settings[key] === value && !(key === 'vajra.view' && settings.camera === 'free')) return;
+    if (key === 'seat.independent' && value) {
+      for (const part of ['lotus', 'sun', 'moon']) settings[`seat.${part}.opacity`] = settings['seat.opacity'];
+    }
     settings[key] = value;
-    saveSettings(mantra, settings);
     if (key === 'script' || key === 'repeat') buildStage();
     if (key === 'repeat') maxRecited = Math.floor((rot * value) / TAU + 1e-9);
-    if (key === 'angle' || key === 'camera') { poseDirty = true; snap = settings.camera === 'fixed'; controls.enabled = settings.camera === 'free' && !inVR; }
+    if (key === 'vajra.view') settings.camera = 'fixed';
+    if (['angle', 'camera', 'vajra.view', 'vajra.enabled', 'ringScale', 'seedScale', 'letterScale', 'highlight'].includes(key) || key.startsWith('seat.')) { poseDirty = true; snap = settings.camera === 'fixed'; controls.enabled = settings.camera === 'free' && !inVR; }
+    if (key === 'quality') { quality.reset(value); resize(); }
+    saveSettings(mantra, settings);
     applyLook();
     refreshUI();
   },
@@ -61,6 +77,14 @@ const ctx = {
     return `${total} · ${Math.floor(total / m)} mala${Math.floor(total / m) === 1 ? '' : 's'} + ${total % m}`;
   },
   actions: {
+    panel: id => openSheet(id),
+    vr: () => startVR(),
+    ngondro: () => {
+      Object.assign(settings, { 'vajra.enabled': true, 'vajra.view': 'mantra', 'seat.lotus': true,
+        'seat.moon': true, 'seat.sun': false, 'seat.color': 'white', camera: 'fixed' });
+      saveSettings(mantra, settings); poseDirty = true; snap = true; controls.enabled = false;
+      applyLook(); refreshUI();
+    },
     tap: () => tap(),
     variant: v => { saveVariant(base.id, v); openMantra(base.id, true); },
     resetView: () => { poseDirty = true; snap = true; },
@@ -69,10 +93,12 @@ const ctx = {
     fullscreen: () => toggleFullscreen(),
     resetSettings: () => {
       if (!confirm(`Restore the ${mantra.name} settings to the defaults?`)) return;
-      const script = settings.script;
+      const previousRepeat = settings.repeat;
       settings = defaultsFor(mantra);
       saveSettings(mantra, settings);
-      if (script !== settings.script) buildStage();
+      buildStage();
+      if (previousRepeat !== settings.repeat) maxRecited = Math.floor(rot * settings.repeat / TAU + 1e-9);
+      quality.reset(settings.quality); resize();
       poseDirty = true; snap = true; controls.enabled = false;
       applyLook(); refreshUI();
     },
@@ -98,6 +124,7 @@ function openMantra(id, force = false) {
   mantra = withVariant(base, loadVariant(base.id));
   rememberMantra(mantra.id);
   settings = loadSettings(mantra);
+  quality.reset(settings.quality); resize();
   total = loadCount(mantra);
   rot = 0; maxRecited = 0; correction = 0; taps.length = 0;
   controls.enabled = settings.camera === 'free' && !inVR;
@@ -113,9 +140,10 @@ function openMantra(id, force = false) {
   frontKey = '';
   ui = buildSettings($('settingsBody'), ctx);
   ctx.onTap?.('Tap at the start of each recitation: the garland takes your pace and brings the first syllable to the front.');
-  buildPicker($('pickerBody'), MANTRAS, mantra.id, pick => { closeSheets(); location.hash = pick; });
+  buildPicker($('pickerBody'), MANTRAS, mantra.id, pick => { closeSheets(true); location.hash = pick; });
   applyLook();
   refreshUI();
+  sheets.refresh();
 }
 
 function applyLook() {
@@ -131,9 +159,13 @@ function applyLook() {
 function refreshUI() {
   ui?.refresh();
   $('periodBtn').textContent = formatPeriod(settings.period);
-  $('playBtn').setAttribute('aria-pressed', String(paused));
-  $('playBtn').setAttribute('aria-label', paused ? 'Play' : 'Pause');
-  $('scriptBtn').setAttribute('aria-pressed', String(settings.readout));
+  $('tapBtn').hidden = !settings.pinTap;
+  const vajraOn = !!mantra.visualization?.vajra && settings['vajra.enabled'];
+  $('vajraViews').hidden = !vajraOn;
+  document.body.classList.toggle('has-vajra', vajraOn);
+  document.querySelectorAll('[data-vajra-view]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.vajraView === settings['vajra.view'])));
+  $('playBtn').setAttribute('aria-pressed', String(paused || settings.stillness));
+  $('playBtn').setAttribute('aria-label', settings.stillness ? 'Resume animation' : paused ? 'Play' : 'Pause');
   $('readout').hidden = !settings.readout;
   const m = settings.malaSize;
   $('countBead').textContent = `${total % m}/${m}`;
@@ -180,14 +212,14 @@ function addCount(d) {
 
 function advance(dt) {
   // the period is one recitation; a garland holding the mantra n times turns once in n of them
-  if (!paused) rot += (TAU * dt) / (settings.period * settings.repeat);
-  if (correction) {
+  if (!paused && !settings.stillness) rot += (TAU * dt) / (settings.period * settings.repeat);
+  if (correction && !settings.stillness) {
     const step = Math.abs(correction) < 1e-4 ? correction : correction * Math.min(1, dt * 5);
     rot += step; correction -= step;
   }
   const recited = Math.floor((rot * settings.repeat) / TAU + 1e-9);
   if (recited > maxRecited) {
-    if (settings.countMode === 'auto' && !paused) addCount(recited - maxRecited);
+    if (settings.countMode === 'auto' && !paused && !settings.stillness) addCount(recited - maxRecited);
     maxRecited = recited;
   }
 }
@@ -195,7 +227,7 @@ function advance(dt) {
 // ── camera ───────────────────────────────────────────────────────────────
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
-  renderer.setPixelRatio(Math.max(1, Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(PIXEL_BUDGET / (w * h)))));
+  renderer.setPixelRatio(Math.max(0.65, quality.scale * Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(PIXEL_BUDGET / (w * h)))));
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   poseDirty = true;
@@ -204,14 +236,15 @@ function resize() {
 function placeCamera() {
   if (inVR) return;
   if (poseDirty) {
-    const pose = fixedPose({ mantra, angle: settings.angle, aspect: camera.aspect, extent: stage.extent() });
+    const pose = fixedPose({ mantra, angle: settings.angle, aspect: camera.aspect, extent: stage.extent(settings) });
     camera.fov = pose.fov;
     camera.updateProjectionMatrix();
     // the free camera keeps its place through a resize; the fixed one is re-framed
     if (snap || settings.camera === 'fixed') {
       camera.position.copy(pose.eye);
-      camera.lookAt(0, 0, 0);
-      controls.target.set(0, 0, 0);
+      camera.lookAt(pose.target);
+      controls.target.copy(pose.target);
+      controls.maxDistance = Math.max(14, pose.eye.distanceTo(pose.target) * 4);
       snap = false;
     }
     poseDirty = false;
@@ -224,12 +257,14 @@ let lastTime = null, clock = 0;
 const _size = new THREE.Vector2();
 function frame(t) {
   const now = t / 1000;
-  const realDt = lastTime === null ? 0 : Math.min(1, Math.max(0, now - lastTime));   // for clocks that keep real time
+  const elapsed = lastTime === null ? 0 : Math.max(0, now - lastTime);
+  if (!inVR && !settings.stillness && quality.sample(elapsed, settings.quality)) resize();
+  const realDt = settings.stillness || document.hidden ? 0 : Math.min(1, elapsed);
   const dt = Math.min(0.1, realDt);
   lastTime = now; clock += dt;
   advance(dt);
   placeCamera();
-  stage.update({ rot, time: clock, camera, settings });
+  stage.update({ rot, time: clock, camera, settings, quality: quality.detail });
   renderer.getDrawingBufferSize(_size);
   for (const fx of effects) fx.update({ dt, realDt, time: clock, camera, settings, viewportHeight: _size.y, fov: camera.fov });
   stars.update(dt);
@@ -266,16 +301,9 @@ function showPhase() {
 }
 
 // ── chrome: bars, sheets, gestures, keys ─────────────────────────────────
-function openSheet(id) {
-  closeSheets();
-  $(id).hidden = false;
-  document.body.classList.add('sheet-open');
-  $(id).querySelector('.sheet-close')?.focus({ preventScroll: true });
-}
-function closeSheets() {
-  for (const s of document.querySelectorAll('.sheet')) s.hidden = true;
-  document.body.classList.remove('sheet-open');
-}
+function openSheet(id) { sheets.open(id); }
+function closeSheets(all = false) { sheets.close(all); }
+function toggleChrome() { document.body.classList.toggle('bare'); sheets.refresh(); }
 function flash(node) { node.classList.remove('flash'); void node.offsetWidth; node.classList.add('flash'); }
 let toastTimer = null;
 function toast(text) {
@@ -284,7 +312,11 @@ function toast(text) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('on'), 2200);
 }
-function togglePause() { paused = !paused; refreshUI(); updateWakeLock(); }
+function togglePause() {
+  if (settings.stillness) { paused = false; ctx.set('stillness', false); }
+  else paused = !paused;
+  refreshUI(); updateWakeLock();
+}
 function toggleFullscreen() {
   const d = document, e = d.documentElement;
   if (d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
@@ -306,29 +338,27 @@ function wireChrome() {
   $('playBtn').onclick = togglePause;
   $('settingsBtn').onclick = () => openSheet('settings');
   $('pickerBtn').onclick = () => openSheet('picker');
-  $('periodBtn').onclick = () => openSheet('settings');
-  $('scriptBtn').onclick = () => { frontKey = ''; ctx.set('readout', !settings.readout); };
+  $('periodBtn').onclick = () => openSheet('pace');
   $('tapBtn').onclick = tap;
-  $('countBtn').onclick = () => (settings.countMode === 'manual' ? addCount(1) : openSheet('settings'));
-  holdRepeat($('slowerBtn'), held => setPeriod(settings.period + 0.05 * (held > 2500 ? 5 : 1)));
-  holdRepeat($('fasterBtn'), held => setPeriod(settings.period - 0.05 * (held > 2500 ? 5 : 1)));
-  for (const b of document.querySelectorAll('.sheet-close')) b.onclick = closeSheets;
-  $('scrim').onclick = closeSheets;
-  $('fsBtn').hidden = !ctx.canFullscreen;
-  $('fsBtn').onclick = toggleFullscreen;
+  $('countBtn').onclick = () => openSheet('counter');
+  for (const b of document.querySelectorAll('[data-vajra-view]')) b.onclick = () => ctx.set('vajra.view', b.dataset.vajraView);
+  for (const b of document.querySelectorAll('.sheet-close')) b.onclick = () => closeSheets();
+  $('scrim').onclick = () => closeSheets();
 
   // a tap on the scene (not a drag) hides or shows the bars
   let down = null;
   canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; });
   canvas.addEventListener('pointerup', e => {
     if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8 && performance.now() - down.t < 350) {
-      document.body.classList.toggle('bare');
+      toggleChrome();
     }
     down = null;
   });
 
   window.addEventListener('keydown', e => {
-    if (e.target.closest?.('input, textarea')) return;
+    if (sheets.keydown(e)) return;
+    if (e.target.closest?.('input, textarea, button, summary, select')) return;
+    if (sheets.isOpen) return;
     const k = e.key;
     if (k === ' ') { e.preventDefault(); togglePause(); }
     else if (k === 't' || k === 'T') tap();
@@ -336,44 +366,34 @@ function wireChrome() {
     else if (k === ']') setPeriod(settings.period + (e.shiftKey ? 1 : 0.05));
     else if (k === '{') setPeriod(settings.period - 1);
     else if (k === '}') setPeriod(settings.period + 1);
-    else if (k === 'h' || k === 'H') document.body.classList.toggle('bare');
+    else if (k === 'h' || k === 'H') toggleChrome();
     else if (k === 'f' || k === 'F') toggleFullscreen();
-    else if (k === 'p' || k === 'P') $('scriptBtn').click();
+    else if (k === 'p' || k === 'P') ctx.set('readout', !settings.readout);
     else if (k === 'r' || k === 'R') ctx.set('script', settings.script === 'tibetan' ? 'phonetics' : 'tibetan');
     else if (k === 'Escape') closeSheets();
   });
-  document.addEventListener('visibilitychange', updateWakeLock);
+  document.addEventListener('visibilitychange', () => { lastTime = null; updateWakeLock(); });
   window.addEventListener('resize', resize);
   window.addEventListener('hashchange', () => openMantra(location.hash.slice(1)));
 }
 
 async function wireVR() {
-  if (!(await vrSupported())) return;
-  const btn = $('vrBtn');
-  btn.hidden = false;
-  btn.onclick = async () => {
-    if (renderer.xr.isPresenting) { renderer.xr.getSession()?.end(); return; }
-    try {
-      const { session, floor } = await enterVR(renderer);
-      inVR = true;
-      controls.enabled = false;
-      world.position.set(0, floor ? 1.35 : -0.2, -1.9);
-      world.scale.setScalar(0.65);
-      applyLook();
-      session.addEventListener('end', () => {
-        inVR = false;
-        world.position.set(0, 0, 0);
-        world.scale.setScalar(1);
-        controls.enabled = settings.camera === 'free';
-        poseDirty = true; snap = true;
-        resize();
-        applyLook();
-      });
-    } catch (err) {
-      toast('VR could not start');
-      console.warn(err);
-    }
-  };
+  vrAvailable = await vrSupported();
+  const btn = $('vrBtn'); if (btn) btn.hidden = !vrAvailable;
+}
+async function startVR() {
+  if (!vrAvailable) return;
+  if (renderer.xr.isPresenting) { renderer.xr.getSession()?.end(); return; }
+  try {
+    const { session, floor } = await enterVR(renderer);
+    closeSheets(true); inVR = true; controls.enabled = false;
+    world.position.set(0, floor ? 1.35 : -0.2, -1.9);
+    world.scale.setScalar(0.65); applyLook();
+    session.addEventListener('end', () => {
+      inVR = false; world.position.set(0, 0, 0); world.scale.setScalar(1);
+      controls.enabled = settings.camera === 'free'; poseDirty = true; snap = true; resize(); applyLook();
+    });
+  } catch (err) { toast('VR could not start'); console.warn(err); }
 }
 
 // ── start ────────────────────────────────────────────────────────────────

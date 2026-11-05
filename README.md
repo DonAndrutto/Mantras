@@ -13,7 +13,7 @@ nothing to install, everything (three.js, fonts) served from this repository.
 | `#green-tara` | Green Tara's mantra around ཏཱྃ |
 | `#white-tara` | White Tara's long-life mantra around ཏཱྃ |
 | `#dzambhala` | Dzambhala's mantra around ཛྃ |
-| `#kurukulle` | Kurukulle's approach and accomplishment mantras (switch in Settings → Mantra) around ཧྲཱིཿ |
+| `#kurukulle` | Kurukulle's approach and accomplishment mantras (switch in Settings → Practice → Mantra) around ཧྲཱིཿ |
 | `#chenrezig` | Om Mani Padme Hum, ཨོཾ་མ་ཎི་པདྨེ་ཧཱུྃ, around ཧྲཱི༔ |
 | `#amitabha` | Om Ami Dewa Hrih, ༀ་ཨ་མི་དྷེ་ཝ་ཧྲཱི༔, around ཧྲཱི༔ |
 
@@ -22,28 +22,40 @@ angle, in the fixed view and in the free camera.
 
 ## Using it
 
-- **Speed** is in *seconds per recitation*; one round of the garland is one recitation (or two
+- **Pace** opens directly from the bottom bar and is in *seconds per recitation*; one round of the garland is one recitation (or two
   or three, when it holds the mantra more than once), so the syllable passing the front is the
   one being recited. Set it with the slider (0.5–180 s), type it
   (to 0.01 s), step it by ±0.05 or ±1 s (hold to repeat), or **Tap** at the start of each
   recitation: the garland takes the pace of your last taps and brings the first syllable
-  to the front.
-- **Counter**: counts each round, or counts taps on the counter (*By tapping*). Shown as
+  to the front. Tap tempo can be pinned to the bottom bar.
+- **Counter**: counts each round, or counts presses of +1 in the counter panel (*By tapping*). Tap the bottom counter to open its controls. Shown as
   beads on the current mala · malas completed. Kept per mantra in this browser.
 - **Size**: garland, letters and seed separately, ×0.30–×3.00.
 - **View**: *Fixed* is the designed view (angle adjustable); *Free* is the World System's
   camera — drag to go round, pinch or scroll to come nearer, two fingers to slide.
 - **VR**: an *Enter VR* button appears only where the browser can show VR (a headset's
   browser, or a desktop browser with a headset). The garland is placed in front of you.
-- **Phonetics**: *Aa* in the top bar shows the syllable at the front, in Tibetan and in
-  phonetics, at the side of the screen (as in the Ngöndro app). Settings → Script can also
+- **Phonetics**: Settings → Practice → Script → *Show phonetic readout* shows the syllable at the front, in Tibetan and in
+  phonetics, at the side of the screen (as in the Ngöndro app). Settings → Practice → Script can also
   write the ring itself in phonetics. Phonetics are one entry per Tibetan syllable (IAST,
   after the Ngöndro app's transliteration).
 - **Seat**: lotus, sun disc and moon disc, any of them, stacked in that order. The discs are
   paper thin and a little wider than the garland, which turns above them within their rim;
-  the lotus has 4, 8, 16 or a thousand petals. The seed hovers just above the uppermost seat.
-- **Garland**: the mantra once, twice or three times round the same garland (Settings →
-  Garland); held more than once it runs closer together. The speed stays per recitation, and
+  the lotus has 4, 8, 16 or a symbolic thousand-petalled form with dense overlapping tiers. Rose and white palettes are available. The seed hovers just above the uppermost seat.
+- **Translucency**: Settings → Visualization → Lotus & discs offers Solid / Translucent.
+  One opacity slider controls all enabled seats; *Adjust separately* exposes each seat's
+  opacity. Zero-opacity surfaces do not hide the letters. Settings are kept per mantra.
+- **Vajrasattva vajra**: Settings → Visualization → Vajrasattva vajra can enclose HŪṂ,
+  the stationary heart mantra and the rotating hundred-syllable garland within the
+  central hub of a large upright five-pronged vajra. The top selector offers **Mantra**
+  (close-up at the letters), **Hub** (the isolated central sphere) and **Whole vajra**
+  (including its seat). Selecting a view returns to the fixed camera without resetting
+  the rotation, pace or count. The two close views isolate the hub; Whole vajra restores both ends and the supporting seat. Hub opacity is independent of the seat opacity.
+  *Use Ngondro arrangement* enables the vajra, a white lotus and moon, leaving the sun off.
+  The seat supports the lower tip of the vajra. The upright orientation and enlarged
+  scale are presentation choices; see the source note below.
+- **Garland**: the mantra once, twice or three times round the same garland (Settings → Practice →
+  Garland & direction); held more than once it runs closer together. The speed stays per recitation, and
   every recitation is counted.
 - **Offering lights**: lights rise from the seed and syllables to the buddhas, return and
   dissolve into the seed and the mantra, then go down to beings in saṃsāra — round and round,
@@ -58,11 +70,20 @@ angle, in the fixed view and in the free camera.
   rays, background (night / black / stars), and the mantra's own effects (Vajrasattva: nectar).
 - **Turning / Syllables follow**: the direction of the spin and of the syllables' order,
   both *seen from above*. Each mantra file sets its own defaults.
+- **Settings** have three categories: Practice, Visualization and View, with expandable
+  groups. Pace and Counter also have their own direct panels. Escape closes a panel and
+  returns focus to its opener; arrow keys move between settings tabs.
+- **Stillness** under Practice freezes rotation, nectar, lights, pulsing and automatic
+  counting; manual counting stays available. Play resumes animation. It is initially
+  enabled when the device requests reduced motion, and the preference can be changed.
+- **Rendering quality** under View → Screen & performance offers Automatic, Light and
+  High. Automatic reduces pixel resolution and lotus detail after sustained slow frames,
+  and recovers gradually when there is spare capacity.
 - Tap the scene to hide or show the bars. Keys: Space pause · T tap · [ ] ±0.05 s ·
   { } ±1 s · H hide · F full screen · P phonetics at the side · R phonetics on the ring.
 
 Settings and counts are remembered per mantra (per variant for Kurukulle) in this browser;
-*Restore defaults* is under Screen.
+*Restore defaults* is under View → Screen & performance. Counts are preserved.
 
 ## Adding a mantra
 
@@ -85,7 +106,10 @@ mantra's `effects` list and registered in `js/app.js`.
 | `js/app.js` | Renderer and loop, the clock, tap tempo, counter, bars, keys, wake lock, VR button. |
 | `js/backdrop.js` | The night sky, drawn in WebGL so the canvas is opaque and light shows the same on every screen. |
 | `js/stage.js` | One mantra in 3D: rings, seed, halo and pool of light; the veil over the seed. |
-| `js/seats.js` | Lotus (4, 8, 16, thousand petals), sun and moon seats. |
+| `js/seats.js` | Shaded lotus petals, sun/moon seats and shared or independent opacity. |
+| `js/vajra.js` | Five-pronged vajra, central hub and scene bounds. |
+| `js/dialogs.js` | Modal sheets, nested focus return and keyboard focus trapping. |
+| `js/quality.js` | Adaptive rendering quality with hysteresis. |
 | `js/glyphs.js` | Syllables as distance fields with their blurred glow (kept for reuse), and the shader that draws them sharp at any size. |
 | `js/camera.js` | The fixed, framed view and the free orbit camera. |
 | `js/xr.js` | WebXR detection and session start. |
@@ -97,7 +121,7 @@ mantra's `effects` list and registered in `js/app.js`.
 | `design/` | The original Claude Design sources. |
 | `vendor/three@0.184.0/` | three.js, byte for byte as in the World System repository (same integrity hashes). |
 | `fonts/` | Jomolhari and EB Garamond, both OFL. |
-| `tests/` | `mantras.test.mjs` (data, syllables, vendored file hashes); `serve.mjs`, a local server. |
+| `tests/` | Data/integrity tests, settings/geometry/framing tests, optional browser checks, and local server. |
 
 ## Trying it locally
 
@@ -112,3 +136,31 @@ then open http://localhost:8000/.
 ## Publishing
 
 Settings → Pages → Deploy from a branch → `main` / root. `.nojekyll` is included.
+
+## Vajrasattva source and design
+
+The visualization follows [Ngondro, blocks ng-5-8–ng-5-11](https://github.com/DonAndrutto/Ngondro/blob/c1759e9962e080e3cbdac6114cc54f8266cf8c45/index.html#L4139):
+HUNG at the vajra's centre, the heart mantra in four directions, the hundred-syllable
+garland surrounding it, and descending nectar. The five-pronged form, enlarged scale,
+and enclosure of the complete existing mantra arrangement were requested for this app.
+The current mantra text, phonetic mapping and four-position heart-mantra layout are preserved.
+
+Form references: [vajra anatomy](https://www.himalayanart.org/search/set.cfm?setID=6657)
+and [lotus design variations](https://www.himalayanart.org/search/set.cfm?setID=6944).
+The geometry is original procedural work; no third-party images are bundled.
+
+## Validation
+
+`npm test` uses Node 22.15+ (including Node 24) and needs no dependencies. It checks
+mantra text integrity, saved-setting compatibility and bounds, translucent seats,
+five-pronged geometry, viewport framing and adaptive-quality behaviour.
+
+The optional browser suite needs Playwright and a Chromium installation:
+
+```bash
+PLAYWRIGHT_MODULE=/path/to/playwright CHROMIUM_EXECUTABLE_PATH=/path/to/chromium node tests/browser.cjs
+```
+
+Set `SCREENSHOT_DIR` to capture review images. The suite starts its own local server,
+checks 320px/390px portrait, phone landscape and desktop layouts, three vajra views,
+count preservation, stillness, keyboard focus, per-seat opacity and mantra switching.

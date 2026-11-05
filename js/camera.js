@@ -10,12 +10,15 @@ const _p = new THREE.Vector3();
 // Framed so the ring and its letters fill `fill` of the width and leave the
 // top and bottom bars clear. Returns the eye position and vertical fov.
 export function fixedPose({ mantra, angle, aspect, extent }) {
-  const e = (Math.max(0, Math.min(90, angle)) * Math.PI) / 180;
-  const d = (mantra.view.distance ?? 3) * extent.radius;
-  const eye = new THREE.Vector3(0, d * Math.sin(e), d * Math.cos(e) + 1e-6);
-  const cam = new THREE.PerspectiveCamera(40, aspect, 0.01, 100);
+  const e = (Math.max(0, Math.min(90, extent.angle ?? angle)) * Math.PI) / 180;
+  const bottom = extent.bottom ?? -extent.half;
+  const top = Math.max(extent.half, extent.seedTop);
+  const target = new THREE.Vector3(0, extent.bottom !== undefined ? (top + bottom) / 2 : 0, 0);
+  const d = Math.max((mantra.view.distance ?? 3) * extent.radius, (top - bottom) * 1.25);
+  const eye = new THREE.Vector3(0, target.y + d * Math.sin(e), d * Math.cos(e) + 1e-6);
+  const cam = new THREE.PerspectiveCamera(40, aspect, 0.01, 1000);
   cam.position.copy(eye);
-  cam.lookAt(0, 0, 0);
+  cam.lookAt(target);
   cam.updateMatrixWorld();
   let tx = 0, ty = 0;
   const probe = (x, y, z) => {
@@ -28,14 +31,14 @@ export function fixedPose({ mantra, angle, aspect, extent }) {
     const a = (i / 72) * Math.PI * 2;
     const x = Math.sin(a) * extent.radius, z = Math.cos(a) * extent.radius;
     probe(x, extent.half, z);
-    probe(x, -extent.half, z);
+    probe(x, bottom, z);
   }
   probe(0, extent.seedTop, 0);
   // the seat is left out: a lotus as wide as the garland may open past the
   // screen's edges, so the garland and seed keep their size
-  const fillW = mantra.view.fill ?? 0.9, fillV = 0.74;
+  const fillW = extent.fill ?? mantra.view.fill ?? 0.9, fillV = 0.72;
   const tanV = Math.max(ty / fillV, tx / (fillW * aspect));
-  return { eye, fov: (2 * Math.atan(tanV) * 180) / Math.PI };
+  return { eye, target, fov: (2 * Math.atan(tanV) * 180) / Math.PI };
 }
 
 export function createControls(camera, canvas) {

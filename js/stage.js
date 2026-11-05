@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { tibetanSyllables, ringSyllables } from './tibetan.js';
 import { makeGlyphSet, glyphMaterial, softLightMaterial } from './glyphs.js';
 import { createSeats } from './seats.js';
+import { createVajra, vajraLayout } from './vajra.js';
 
 const TAU = Math.PI * 2;
 const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
@@ -73,7 +74,8 @@ export class Stage {
         return { mesh, material, c: centers[i] };
       });
       const height = Math.max(...tokens.map(t => set.get(t).height));
-      this.rings.push({ spec: ring, items, size, height, tibetan: syl.tibetan, phonetics: syl.phonetics });
+      const width = Math.max(...tokens.map(t => set.get(t).width));
+      this.rings.push({ spec: ring, items, size, height, width, tibetan: syl.tibetan, phonetics: syl.phonetics });
     });
     // the turning syllables' positions: the same vectors, moved every frame
     this._sources = this.rings.filter(r => (r.spec.turns ?? 1) !== 0).flatMap(r => r.items.map(it => it.mesh.position));
@@ -89,11 +91,14 @@ export class Stage {
     this.seed = new THREE.Mesh(sg.geometry, this.seedMaterial);
     this.seedSize = seed.size * (seedScript === 'phonetics' ? seed.phoneticsScale ?? 0.45 : 1);
     this.seedHeight = sg.height;
+    this.seedWidth = sg.width;
     this.seedBelow = sg.below;
     this.group.add(this.seed);
 
     this.seats = createSeats(this.group);
     this.disposables.push(this.seats);
+    this.vajra = mantra.visualization?.vajra ? createVajra(this.group) : null;
+    if (this.vajra) this.disposables.push(this.vajra);
 
     // light: a wide halo behind the seed, a pool under the ring
     this.halo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), softLightMaterial(this.pal.halo));
@@ -112,12 +117,33 @@ export class Stage {
   }
 
   // Half the height the rings and seed need at scale 1, for framing the view.
-  extent() {
-    let half = 0;
-    for (const r of this.rings) half = Math.max(half, (r.size * r.height) / 2);
-    const seedTop = this.seedSize * (this.mantra.seed.lift + this.seedHeight / 2);
-    const radius = Math.max(...this.mantra.rings.map(r => r.radius ?? 1));
-    return { radius, half, seedTop };
+  mantraExtent(settings) {
+    let half = 0, radius = 0;
+    for (const r of this.rings) {
+      const scale = r.spec.scaleWith === 'seed' ? settings.seedScale : settings.ringScale;
+      const letter = r.size * scale * (r.spec.scaleWith === 'seed' ? 1 : settings.letterScale)
+        * (1 + (r.spec.highlight?.scale ?? 0) * settings.highlight);
+      half = Math.max(half, Math.abs((r.spec.y ?? 0) * scale) + letter * r.height / 2);
+      radius = Math.max(radius, (r.spec.radius ?? 1) * scale * Math.max(1, r.spec.depth ?? 1)
+        + letter * Math.hypot(r.width, r.height) / 2);
+    }
+    const em = this.seedSize * settings.seedScale;
+    const seedTop = em * (this.mantra.seed.lift + this.seedHeight / 2);
+    const seedBottom = em * (this.mantra.seed.lift - this.seedBelow);
+    radius = Math.max(radius, em * Math.hypot(this.seedWidth, this.seedHeight) / 2);
+    return { radius, half, seedTop, seedBottom };
+  }
+
+  extent(settings) {
+    const extent = this.mantraExtent(settings);
+    if (!this.vajra || !settings['vajra.enabled'] || settings['vajra.view'] === 'mantra') return extent;
+    const v = vajraLayout(extent);
+    if (settings['vajra.view'] === 'hub') return {
+      radius: v.scale * 1.12, half: v.scale * 1.12, seedTop: v.scale * 1.12, fill: 0.86, angle: 12,
+    };
+    const hasSeat = ['lotus', 'moon', 'sun'].some(k => settings[`seat.${k}`]);
+    return { radius: hasSeat ? v.radius * 1.6 : v.radius, half: v.half,
+      seedTop: v.half, bottom: -v.half - (hasSeat ? v.scale * 0.85 : 0), fill: 0.86, angle: 10 };
   }
 
   // Where the turning syllables are now, in the stage's own space (for effects).
@@ -137,7 +163,7 @@ export class Stage {
     return out.set(out.x / z, out.y / z, z);
   }
 
-  update({ rot, time, camera, settings }) {
+  update({ rot, time, camera, settings, quality = 'high' }) {
     // the viewer, seen from the stage
     this.group.updateMatrixWorld();
     camera.updateMatrixWorld();
@@ -216,11 +242,18 @@ export class Stage {
     const ringHalf = this.rings[0] ? this.rings[0].size * this.rings[0].height * settings.ringScale * settings.letterScale / 2 : 0;
     const seedBottom = this.seed.position.y - seedEm * this.seedBelow;
     const gap = Math.max(0.025 * width, 0.12 * seedEm);
-    const seat = this.seats.update({ settings, top: Math.min(seedBottom, -ringHalf * 1.15) - gap, width });
+    const v = this.vajra?.update(settings, this.mantraExtent(settings));
+    const enclosed = this.vajra && settings['vajra.enabled'];
+    const seat = this.seats.update({ settings,
+      top: enclosed ? -v.half - gap : Math.min(seedBottom, -ringHalf * 1.15) - gap,
+      width: enclosed ? v.radius * 1.05 : width, quality });
+    // The supporting seat belongs to the complete form, below its lower tip.
+    if (enclosed && settings['vajra.view'] !== 'whole') this.seats.group.visible = false;
     this.seat = seat;
     const seated = seat !== null;
-    su.shade.value = seated ? 0.7 : 0;
-    for (const r of this.rings) for (const it of r.items) it.material.uniforms.shade.value = seated ? 0.4 : 0;
+    const seatShade = enclosed ? 0 : (seat?.strength ?? 0);
+    su.shade.value = seatShade * 0.7;
+    for (const r of this.rings) for (const it of r.items) it.material.uniforms.shade.value = seatShade * 0.4;
 
     this.halo.position.copy(this.seed.position);
     this.halo.quaternion.copy(this._q);
