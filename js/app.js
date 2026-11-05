@@ -14,7 +14,7 @@ import { createStars } from './effects/stars.js';
 import { createBackdrop } from './backdrop.js';
 import { buildSettings, buildPicker, roundPeriod, formatPeriod } from './ui.js';
 
-import { createSheets } from './dialogs.js';
+import { sheets, welcoming, previewPaused, sceneReady } from './shell.js';
 import { createQualityController } from './quality.js';
 
 const TAU = Math.PI * 2;
@@ -43,7 +43,7 @@ let base = null, mantra = null, settings = null, stage = null, effects = [], ui 
 let rot = 0, maxRecited = 0, correction = 0, total = 0, paused = false;
 let poseDirty = true, snap = true, inVR = false;
 const taps = [];
-const sheets = createSheets();
+let wanted = location.hash.slice(1) || lastMantra() || 'vajra-guru';
 const quality = createQualityController();
 let vrAvailable = false;
 
@@ -122,8 +122,8 @@ function openMantra(id, force = false) {
   if (!force && base && next.id === base.id) return;
   base = next;
   mantra = withVariant(base, loadVariant(base.id));
-  rememberMantra(mantra.id);
-  settings = loadSettings(mantra);
+  if (!welcoming) rememberMantra(mantra.id);
+  settings = welcoming ? { ...defaultsFor(mantra), period: 16, angle: 28, keepAwake: false, stillness: false } : loadSettings(mantra);
   quality.reset(settings.quality); resize();
   total = loadCount(mantra);
   rot = 0; maxRecited = 0; correction = 0; taps.length = 0;
@@ -136,7 +136,7 @@ function openMantra(id, force = false) {
   $('seedBtn').textContent = mantra.seed.text;
   const variantLabel = mantra.variants?.find(v => v.id === mantra.variant)?.label;
   $('nameBtn').textContent = variantLabel ? `${mantra.name} · ${variantLabel}` : mantra.name;
-  document.title = `${mantra.name} · Mantras Visualised`;
+  document.title = welcoming ? 'Mantras Visualised' : `${mantra.name} · Mantras Visualised`;
   frontKey = '';
   ui = buildSettings($('settingsBody'), ctx);
   ctx.onTap?.('Tap at the start of each recitation: the garland takes your pace and brings the first syllable to the front.');
@@ -219,7 +219,7 @@ function advance(dt) {
   }
   const recited = Math.floor((rot * settings.repeat) / TAU + 1e-9);
   if (recited > maxRecited) {
-    if (settings.countMode === 'auto' && !paused && !settings.stillness) addCount(recited - maxRecited);
+    if (!welcoming && !sheets.isOpen && settings.countMode === 'auto' && !paused && !settings.stillness) addCount(recited - maxRecited);
     maxRecited = recited;
   }
 }
@@ -237,6 +237,7 @@ function placeCamera() {
   if (inVR) return;
   if (poseDirty) {
     const pose = fixedPose({ mantra, angle: settings.angle, aspect: camera.aspect, extent: stage.extent(settings) });
+    if (welcoming) pose.eye.sub(pose.target).multiplyScalar(window.innerWidth < 760 && window.innerHeight > 650 ? 1.1 : 1.7).add(pose.target);
     camera.fov = pose.fov;
     camera.updateProjectionMatrix();
     // the free camera keeps its place through a resize; the fixed one is re-framed
@@ -259,7 +260,7 @@ function frame(t) {
   const now = t / 1000;
   const elapsed = lastTime === null ? 0 : Math.max(0, now - lastTime);
   if (!inVR && !settings.stillness && quality.sample(elapsed, settings.quality)) resize();
-  const realDt = settings.stillness || document.hidden ? 0 : Math.min(1, elapsed);
+  const realDt = (welcoming ? previewPaused : settings.stillness) || sheets.isOpen || document.hidden ? 0 : Math.min(1, elapsed);
   const dt = Math.min(0.1, realDt);
   lastTime = now; clock += dt;
   advance(dt);
@@ -325,7 +326,7 @@ function toggleFullscreen() {
 
 let wakeLock = null;
 async function updateWakeLock() {
-  const want = settings?.keepAwake && !paused && document.visibilityState === 'visible';
+  const want = !welcoming && settings?.keepAwake && !paused && document.visibilityState === 'visible';
   try {
     if (want && !wakeLock && navigator.wakeLock) {
       wakeLock = await navigator.wakeLock.request('screen');
@@ -356,8 +357,8 @@ function wireChrome() {
   });
 
   window.addEventListener('keydown', e => {
-    if (sheets.keydown(e)) return;
-    if (e.target.closest?.('input, textarea, button, summary, select')) return;
+    if (e.defaultPrevented || welcoming) return;
+    if (e.target.closest?.('input, textarea, button, a, summary, select')) return;
     if (sheets.isOpen) return;
     const k = e.key;
     if (k === ' ') { e.preventDefault(); togglePause(); }
@@ -374,7 +375,21 @@ function wireChrome() {
   });
   document.addEventListener('visibilitychange', () => { lastTime = null; updateWakeLock(); });
   window.addEventListener('resize', resize);
-  window.addEventListener('hashchange', () => openMantra(location.hash.slice(1)));
+  window.addEventListener('hashchange', () => {
+    wanted = location.hash.slice(1);
+    if (!welcoming) openMantra(wanted);
+  });
+  window.addEventListener('mantras:enter', () => {
+    paused = false;
+    openMantra(findMantra(wanted) ? wanted : 'vajra-guru', true);
+    history.replaceState(null, '', `#${mantra.id}`);
+    lastTime = null;
+  });
+  window.addEventListener('mantras:welcome', () => {
+    wanted = mantra.id; paused = false;
+    openMantra('vajra-guru', true);
+    lastTime = null;
+  });
 }
 
 async function wireVR() {
@@ -397,16 +412,13 @@ async function startVR() {
 }
 
 // ── start ────────────────────────────────────────────────────────────────
-async function start() {
+export async function start() {
   await loadFonts();
   wireChrome();
   resize();
-  const wanted = location.hash.slice(1) || lastMantra();
-  openMantra(findMantra(wanted) ? wanted : MANTRAS[0].id);
-  if (location.hash.slice(1) !== mantra.id) history.replaceState(null, '', `#${mantra.id}`);
+  openMantra('vajra-guru');
   renderer.setAnimationLoop(frame);
   document.body.classList.add('ready');
   wireVR();
+  sceneReady();
 }
-
-start();

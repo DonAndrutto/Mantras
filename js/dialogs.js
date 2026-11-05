@@ -2,8 +2,8 @@
 export function createSheets() {
   let active = null;
   const stack = [];
-  const surfaces = [...document.querySelectorAll('.chrome, #scene, #readout, #phase')];
-  const focusable = sheet => [...sheet.querySelectorAll('button, input, select, summary, [tabindex="0"]')]
+  const surfaces = [...document.querySelectorAll('.chrome, #scene, #readout, #phase, #welcome, #installInvite')];
+  const focusable = sheet => [...sheet.querySelectorAll('button, a[href], input, select, summary, [tabindex="0"]')]
     .filter(n => {
       const closed = n.closest('details:not([open])');
       return n.tabIndex >= 0 && !n.matches(':disabled') && !n.closest('[inert]')
@@ -12,7 +12,11 @@ export function createSheets() {
   function show() {
     document.querySelectorAll('.sheet').forEach(s => { s.hidden = s.id !== active?.id; });
     document.body.classList.toggle('sheet-open', !!active);
-    surfaces.forEach(n => { n.inert = !!active || (n.classList.contains('chrome') && document.body.classList.contains('bare')); });
+    const welcome = document.body.classList.contains('welcome');
+    document.body.classList.toggle('help-open', active?.id === 'controlHelp');
+    document.getElementById('helpBtn')?.setAttribute('aria-expanded', String(active?.id === 'controlHelp'));
+    surfaces.forEach(n => { n.inert = !!active || (!['welcome', 'installInvite'].includes(n.id) && welcome)
+      || (n.classList.contains('chrome') && document.body.classList.contains('bare')); });
     const dialog = active && document.getElementById(active.id);
     // Variant changes rebuild the settings controls while the sheet stays open.
     if (dialog && !dialog.contains(document.activeElement)) dialog.querySelector('.sheet-close').focus({ preventScroll: true });
@@ -32,7 +36,7 @@ export function createSheets() {
       active = all ? null : stack.pop() || null;
       if (all) stack.length = 0;
       show();
-      const fallback = document.getElementById('settingsBtn');
+      const fallback = document.getElementById(document.body.classList.contains('welcome') ? 'enterBtn' : 'settingsBtn');
       (returning?.isConnected && returning.getClientRects().length ? returning : fallback).focus({ preventScroll: true });
     },
     keydown(e) {

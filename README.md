@@ -2,7 +2,7 @@
 
 Mantra garlands turning around their seed syllables, as visualised during recitation in
 Vajrayāna practice. The page is a single static site for GitHub Pages: no build step,
-nothing to install, everything (three.js, fonts) served from this repository.
+no build dependencies, with everything (three.js, fonts) served from this repository.
 
 **Mantras so far**
 
@@ -164,3 +164,53 @@ PLAYWRIGHT_MODULE=/path/to/playwright CHROMIUM_EXECUTABLE_PATH=/path/to/chromium
 Set `SCREENSHOT_DIR` to capture review images. The suite starts its own local server,
 checks 320px/390px portrait, phone landscape and desktop layouts, three vajra views,
 count preservation, stillness, keyboard focus, per-seat opacity and mantra switching.
+
+
+## Welcome, help and installation
+
+The opening screen previews Vajra Guru using the live renderer. It does not read
+its saved appearance settings, change the last-used mantra or write recitation
+counts. “Tap to explore” opens a valid URL fragment, otherwise the last-used
+mantra, otherwise Vajra Guru. Home returns to the welcome screen. Reduced motion
+pauses the preview; the preview also has its own pause control.
+
+The How to use tab and the guide reached through **?** share one HTML template.
+The question mark labels visible controls in place, following Ngondro and BardoOS.
+The scene clock is held while modal panels are open. The heart uses the same
+PayPal donation destination as those apps. English UI only for this pass;
+interface language selection and Polish remain a separate follow-up.
+
+A dismissible install invitation appears on first entry, with explicit browser
+installation on supported Chromium devices and manual instructions for iOS,
+iPadOS and Safari for Mac. Dismissal is remembered; installation remains available
+from the welcome footer. Installed windows suppress the invitation.
+
+### Offline release procedure
+
+The service worker downloads all shipped modules, all eight mantra definitions,
+fonts, icons, styles and the shell before reporting **Ready offline**. A failed
+download does not activate a partial release. Paths work at the domain root and
+under `/Mantras/`. Each cache is namespaced to this app and its scope, so it does
+not delete BardoOS or Ngondro data. Offline support requires HTTPS or localhost
+and browser storage; clearing site data removes counts, settings and caches.
+
+After changing any shipped file, run **`npm run precache`** and commit `sw.js`
+with the changes. `npm test` checks that the asset list and content fingerprint
+are current. Deploy the complete repository together. An updated worker waits
+until all existing Mantras windows close; the app reports “Update ready”. It
+never forces a reload in the middle of practice. Counts and preferences remain
+in local storage across releases.
+
+The additional optional integration suite is:
+
+```bash
+PLAYWRIGHT_MODULE=/path/to/playwright CHROMIUM_EXECUTABLE_PATH=/path/to/chromium node tests/welcome-browser.cjs
+```
+
+It checks a full welcome rotation without counting, saved preferences, small
+portrait/landscape/tablet layouts, guide tabs, modal focus, donation destination,
+installation invitation and dismissal, reduced motion, renderer recovery, and
+fresh offline launches at both root and subpath URLs. The latter switches through
+all mantras, including ones never opened online. `npm run test:browser` runs both
+browser suites. Native browser installation UI still needs a real-device check
+in Safari and Chrome/Edge; the suite tests the app’s prompt handling.

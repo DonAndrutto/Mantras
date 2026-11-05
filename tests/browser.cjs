@@ -22,8 +22,9 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     page.on('pageerror', e => errors.push(e.message));
     page.on('console', e => { if (e.type() === 'error') errors.push(e.text()); });
     const url = `http://localhost:${server.address().port}`;
-    await page.goto(url);
-    await page.waitForSelector('body.ready');
+    await page.addInitScript(() => localStorage.setItem('mantras:install-answered', '1'));
+    await page.goto(url + '/#vajrasattva');
+    await page.waitForSelector('body.ready'); await page.locator('#enterBtn').click();
     const snap = async name => { if (out) await page.screenshot({ path: path.join(out, `${name}.png`) }); };
     const open = () => page.getByRole('button', { name: 'Settings', exact: true }).click();
     const close = () => page.locator('.sheet:not([hidden]) .sheet-close').click();
@@ -39,7 +40,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       localStorage.setItem('mantras:settings:vajrasattva', JSON.stringify({ period: 23, repeat: 2, seedScale: 1.2 }));
       localStorage.setItem('mantras:count:vajrasattva', JSON.stringify({ total: 217 }));
     });
-    await page.reload(); await page.waitForSelector('body.ready');
+    await page.reload(); await page.waitForSelector('body.ready'); await page.locator('#enterBtn').click();
     assert.match(await page.locator('#periodBtn').innerText(), /23.00/);
     assert.match(await page.locator('#countBtn').innerText(), /1\/108[\s\S]*2/);
 
@@ -143,7 +144,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         depthWrite: seats.getObjectByName('moon-disc').material.depthWrite };
     });
     assert.deepEqual(materialState, { sunVisible: false, moonOpacity: 0.55, depthWrite: false });
-    await page.reload(); await page.waitForSelector('body.ready');
+    await page.reload(); await page.waitForSelector('body.ready'); await page.locator('#enterBtn').click();
     assert.equal((await saved())['seat.petals'], 1000); assert.equal((await saved())['seat.moon.opacity'], 0.55);
 
     // Counter remains usable in stillness; presets must not reset it.
@@ -170,7 +171,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         'seat.lotus': true, 'seat.sun': true, 'seat.moon': true, angle: 28,
       }));
     });
-    await page.reload(); await page.waitForSelector('body.ready');
+    await page.reload(); await page.waitForSelector('body.ready'); await page.locator('#enterBtn').click();
     await open(); await tab('Visualization'); await group('Lotus & discs');
     for (const name of ['4', '8', '16', 'Thousand']) {
       await page.getByRole('button', { name, exact: true }).click(); await close();
