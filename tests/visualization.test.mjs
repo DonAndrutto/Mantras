@@ -67,6 +67,7 @@ test('vajra contains the complete mantra bounds and has five prongs at both ends
   const extent = { radius: 3.2, half: 0.5, seedTop: 0.8, seedBottom: -0.4 };
   const bounds = vajraLayout(extent);
   assert.ok(Math.hypot(extent.radius, extent.seedTop) < bounds.hubRadius);
+  assert.ok((extent.radius / bounds.hubRadius) ** 2 + (extent.seedTop / bounds.hubHeight) ** 2 < 1);
   const parent = new THREE.Group(), v = createVajra(parent), s = defaultsFor(vajrasattva);
   s['vajra.enabled'] = true; v.update(s, extent);
   for (const sign of [-1, 1]) {
@@ -74,6 +75,31 @@ test('vajra contains the complete mantra bounds and has five prongs at both ends
     assert.equal(v.group.children.filter(n => n.name.startsWith(`curved-prong-${sign}-`)).length, 4);
   }
   v.group.traverse(n => { if (n.geometry) assert.ok(n.geometry.attributes.position.array.every(Number.isFinite)); });
+  // The model is broad enough to match the reference silhouette, and every
+  // carving stays inside the bounds used for camera framing.
+  assert.ok(bounds.half / bounds.radius > 2.5 && bounds.half / bounds.radius < 3);
+  for (const mesh of v.group.children) {
+    const p = mesh.geometry.attributes.position;
+    for (let i = 0; i < p.count; i++) {
+      assert.ok(Math.hypot(p.getX(i), p.getZ(i)) * bounds.scale <= bounds.radius + 1e-5);
+      assert.ok(Math.abs(p.getY(i)) * bounds.scale <= bounds.half + 1e-5);
+    }
+  }
+  assert.ok(v.group.children.length <= 16, 'ornaments are batched for mobile rendering');
+  for (const opacity of [0, 0.18, 0.6, 1]) {
+    s['vajra.opacity'] = opacity; s['vajra.view'] = 'whole'; v.update(s, extent);
+    assert.equal(v.group.visible, opacity > 0);
+    for (const mesh of v.group.children) {
+      assert.equal(mesh.material.uniforms.opacity.value, opacity, mesh.name);
+      assert.equal(mesh.material.depthWrite, opacity === 1, mesh.name);
+      assert.equal(mesh.material.transparent, opacity < 1, mesh.name);
+    }
+  }
+  s['vajra.opacity'] = .24;
+  for (const view of ['mantra', 'hub']) {
+    s['vajra.view'] = view; v.update(s, extent);
+    assert.deepEqual(v.group.children.filter(m => m.visible).map(m => m.name), ['central-hub']);
+  }
   v.dispose(); assert.equal(parent.children.length, 0);
 });
 

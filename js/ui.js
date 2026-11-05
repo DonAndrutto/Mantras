@@ -147,8 +147,8 @@ export function buildSettings(root, ctx) {
     toggle('vajra.enabled', 'Within a five-pronged vajra'),
     when(s => s['vajra.enabled'],
       segmented('vajra.view', 'Framing', [['mantra', 'Mantra'], ['hub', 'Hub'], ['whole', 'Whole vajra']]),
-      range('vajra.opacity', 'Hub opacity', { min: 0, max: 1, step: 0.01, format: percent }),
-      el('div', { class: 'hint', text: 'HŪṂ, the heart mantra and the hundred-syllable garland rest inside the central hub. Mantra is a close-up of the letters; Hub isolates the central sphere; Whole vajra shows both ends and the seat.' })),
+      range('vajra.opacity', 'Vajra opacity', { min: 0, max: 1, step: 0.01, format: percent }),
+      el('div', { class: 'hint', text: 'HŪṂ, the heart mantra and the hundred-syllable garland rest inside the central hub. Mantra is a close-up of the letters; Hub isolates the central hub; Whole vajra shows both ends and the seat. Opacity affects every part of the vajra.' })),
     action('Use Ngondro arrangement', () => ctx.actions.ngondro()),
     el('div', { class: 'hint', text: 'White lotus, moon and five-pronged vajra. Keeps your pace and count.' }),
   ) : null;

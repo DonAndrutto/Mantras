@@ -48,9 +48,9 @@ angle, in the fixed view and in the free camera.
 - **Vajrasattva vajra**: Settings → Visualization → Vajrasattva vajra can enclose HŪṂ,
   the stationary heart mantra and the rotating hundred-syllable garland within the
   central hub of a large upright five-pronged vajra. The top selector offers **Mantra**
-  (close-up at the letters), **Hub** (the isolated central sphere) and **Whole vajra**
+  (close-up at the letters), **Hub** (the isolated central hub) and **Whole vajra**
   (including its seat). Selecting a view returns to the fixed camera without resetting
-  the rotation, pace or count. The two close views isolate the hub; Whole vajra restores both ends and the supporting seat. Hub opacity is independent of the seat opacity.
+  the rotation, pace or count. The two close views isolate the hub; Whole vajra restores both ends and the supporting seat. Vajra opacity applies to the entire form, including its prongs, collars and hub, independently of the seat opacity.
   *Use Ngondro arrangement* enables the vajra, a white lotus and moon, leaving the sun off.
   The seat supports the lower tip of the vajra. The upright orientation and enlarged
   scale are presentation choices; see the source note below.
@@ -147,7 +147,7 @@ The current mantra text, phonetic mapping and four-position heart-mantra layout 
 
 Form references: [vajra anatomy](https://www.himalayanart.org/search/set.cfm?setID=6657)
 and [lotus design variations](https://www.himalayanart.org/search/set.cfm?setID=6944).
-The geometry is original procedural work; no third-party images are bundled.
+The vajra proportions and carved forms follow the supplied ritual-vajra photograph and line drawing: broad bowed blades, a slightly flattened hub, lotus cups, beaded bands and makara-inspired prong roots. Pale translucent surfaces have view-dependent highlights. The geometry is original procedural work; no third-party images are bundled.
 
 ## Validation
 
