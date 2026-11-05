@@ -35,7 +35,7 @@ export function defaultsFor(mantra) {
     'seat.moon.opacity': 0.4,
     'vajra.enabled': false,
     'vajra.view': 'mantra',
-    'vajra.opacity': 0.24,
+    'vajra.opacity': 0.55,
     repeat: 1,                         // the mantra 1, 2 or 3 times round the garland
     readout: false,                    // the front syllable's phonetics at the side
     rays: 0,

@@ -139,10 +139,10 @@ export class Stage {
     if (!this.vajra || !settings['vajra.enabled'] || settings['vajra.view'] === 'mantra') return extent;
     const v = vajraLayout(extent);
     if (settings['vajra.view'] === 'hub') return {
-      radius: v.scale * 1.12, half: v.scale * 1.12, seedTop: v.scale * 1.12, fill: 0.86, angle: 12,
+      radius: v.scale * 1.12, half: v.hubHeight * 1.12, seedTop: v.hubHeight * 1.12, fill: 0.86, angle: 12,
     };
     const hasSeat = ['lotus', 'moon', 'sun'].some(k => settings[`seat.${k}`]);
-    return { radius: hasSeat ? v.radius * 1.6 : v.radius, half: v.half,
+    return { radius: Math.max(v.radius, hasSeat ? v.scale * 1.6 : 0), half: v.half,
       seedTop: v.half, bottom: -v.half - (hasSeat ? v.scale * 0.85 : 0), fill: 0.86, angle: 10 };
   }
 
@@ -246,7 +246,7 @@ export class Stage {
     const enclosed = this.vajra && settings['vajra.enabled'];
     const seat = this.seats.update({ settings,
       top: enclosed ? -v.half - gap : Math.min(seedBottom, -ringHalf * 1.15) - gap,
-      width: enclosed ? v.radius * 1.05 : width, quality });
+      width: enclosed ? v.scale * 0.95 : width, quality });
     // The supporting seat belongs to the complete form, below its lower tip.
     if (enclosed && settings['vajra.view'] !== 'whole') this.seats.group.visible = false;
     this.seat = seat;

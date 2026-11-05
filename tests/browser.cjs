@@ -91,6 +91,24 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     assert.ok(poses[0] < poses[1] && poses[1] < poses[2], `distinct increasing camera distances: ${poses}`);
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('mantras:count:vajrasattva')).total), 217);
 
+    // Opacity applies to all prongs, collars and ornamentation, not just the hub.
+    await open();
+    for (const opacity of [0, 0.18, 0.55, 1]) {
+      await range('Vajra opacity', opacity);
+      await page.waitForTimeout(100);
+      const state = await page.evaluate(() => {
+        const v = testFrame.stage.vajra.group;
+        return { visible: v.visible, all: v.children.every(m =>
+          m.material.uniforms.opacity.value === Number(document.querySelector('[aria-label="Vajra opacity"]').value)) };
+      });
+      assert.equal(state.visible, opacity > 0); assert.equal(state.all, true);
+      assert.deepEqual(await page.evaluate(() => [testFrame.rot, testFrame.time]), frozen);
+      if (opacity === .55 || opacity === 1) {
+        await close(); await page.waitForTimeout(250); await snap(`vajra-opacity-${opacity}`); await open();
+      }
+    }
+    await range('Vajra opacity', 0.24); await close();
+
     // Compact bars, including optional tap tempo, fit narrow portrait and landscape.
     for (const [width, height] of [[320, 640], [390, 844], [844, 390], [1440, 900]]) {
       await page.setViewportSize({ width, height });
@@ -139,7 +157,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await open(); await tab('View'); await group(/^View$/);
     await page.getByRole('button', { name: 'Free', exact: true }).click();
     assert.equal(await page.getByRole('slider', { name: 'Angle', exact: true }).isDisabled(), true);
-    await close(); await page.locator('[data-vajra-view="whole"]').click();
+    await close();
+    await page.mouse.move(140, 380); await page.mouse.down();
+    await page.mouse.move(260, 440, { steps: 12 }); await page.mouse.up();
+    await page.waitForTimeout(300); await snap('whole-oblique');
+    await page.locator('[data-vajra-view="whole"]').click();
     assert.equal((await saved()).camera || 'fixed', 'fixed');
 
     // Inspect lotus forms independently of the vajra, including an oblique view.
