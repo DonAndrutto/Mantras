@@ -16,6 +16,7 @@ export function defaultsFor(mantra) {
     seedScale: 1,
     angle: mantra.view.angle,          // degrees above the ring's plane
     camera: 'fixed',                   // 'fixed' | 'free'
+    phoneticsBelow: false,             // Latin labels travel beneath Tibetan syllables
     script: 'tibetan',                 // 'tibetan' | 'phonetics'
     glow: 1,
     highlight: 1,
@@ -58,7 +59,7 @@ export function defaultsFor(mantra) {
 }
 
 // Preferences of the viewer rather than of a mantra: the same for every one.
-const GLOBAL = ['readout', 'keepAwake', 'pinTap', 'stillness', 'quality'];
+const GLOBAL = ['phoneticsBelow', 'readout', 'keepAwake', 'pinTap', 'stillness', 'quality'];
 
 const ENUMS = {
   spin: ['cw', 'ccw'], order: ['cw', 'ccw'], camera: ['fixed', 'free'],
@@ -107,6 +108,7 @@ export function loadSettings(mantra) {
     const value = GLOBAL.includes(k) && k in prefs ? prefs[k] : saved[k];
     s[k] = validateSetting(k, value, defaults[k]);
   }
+  if (s.phoneticsBelow) s.script = 'tibetan';
   if (!mantra.visualization?.vajra) s['vajra.enabled'] = false;
   return s;
 }

@@ -85,6 +85,13 @@
   </button>
 </header>
 
+<nav id="quickControls" class="chrome quick-controls" aria-label="View shortcuts">
+  <button id="phoneticsBtn" class="pill" type="button" aria-label="Latin phonetics beneath Tibetan" aria-pressed="false"><span aria-hidden="true">Aa</span> Phonetics</button>
+  <div class="camera-switch" role="group" aria-label="Camera mode">
+    <button id="fixedCameraBtn" type="button" aria-pressed="true" aria-label="Fixed camera — recenter view">Fixed</button>
+    <button id="freeCameraBtn" type="button" aria-pressed="false" aria-label="Free camera — drag to orbit">Free <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16M12 4v16M4 12l3-3M4 12l3 3M20 12l-3-3M20 12l-3 3M12 4l-3 3M12 4l3 3M12 20l-3-3M12 20l3-3"/></svg></button>
+  </div>
+</nav>
 <footer class="chrome bottom">
   <button id="playBtn" class="icon round" type="button" aria-label="Pause" aria-pressed="false">
     <svg class="pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>
@@ -155,11 +162,11 @@
   <h3>Begin</h3><p>Tap <strong>Tap to explore</strong>. Choose a mantra from its name at the top left. A shared link opens that mantra when you enter; otherwise the app remembers your last selection. The welcome preview always shows Vajra Guru, and never adds to your count.</p>
   <h3>Find your pace</h3><p>The play button pauses and resumes the garland. Tap the time beside it to set the seconds for one recitation, or use <strong>Tap tempo</strong> at the start of successive recitations. You can pin Tap tempo to the bottom bar.</p>
   <h3>Count with care</h3><p>By default, the counter advances with each animated recitation. It follows the animation, not your voice. Open the counter to add or subtract recitations, choose manual counting, change the mala size, or reset the count. Counts and settings are saved separately for each mantra and variant, on this device.</p>
-  <h3>Shape the view</h3><p>Open Settings for <strong>Practice</strong>, <strong>Visualization</strong> and <strong>View</strong>. Switch between Tibetan and phonetics, show the syllable at the front, adjust size and light, or change the lotus, sun and moon discs. In Free camera mode, drag to orbit and pinch or scroll to zoom.</p>
+  <h3>Shape the view</h3><p>Open Settings for <strong>Practice</strong>, <strong>Visualization</strong> and <strong>View</strong>. Tap <strong>Phonetics</strong> above the playback bar to add small Latin syllables beneath the Tibetan letters as they turn. Each pair brightens together. You can still choose Latin-only lettering in Settings, or show the front syllable readout for a larger reading aid. Adjust size and light, or change the lotus, sun and moon discs. Use the <strong>Fixed / Free</strong> switch above the playback bar. Free lets you drag to orbit and pinch or scroll to zoom. Fixed returns to the centred view. The same controls remain in Settings → View.</p>
   <p>For Vajrasattva, enable the five-pronged vajra in Visualization. Choose <strong>Mantra</strong>, <strong>Hub</strong> or <strong>Whole vajra</strong>, and adjust its translucency. “Use Ngondro arrangement” applies the white lotus and moon-disc arrangement.</p>
   <h3>A quieter screen</h3><p>Tap <strong>?</strong> to reveal what the controls do. Tap the scene to hide or restore the bars. <strong>Stillness</strong> in Practice stops all animation and automatic counting; manual counting remains available. The welcome preview respects your device’s reduced-motion preference.</p>
   <h3>Use it offline</h3><p>Choose <strong>Install app</strong> on the welcome page. On iPhone or iPad, open in Safari and use Share → Add to Home Screen. On supported Android and desktop browsers, use the install button or the browser’s installation menu. Wait for <strong>Ready offline</strong> before disconnecting: all eight mantras, the visualisation and fonts are saved together. Browser storage must remain available; clearing it removes the offline copy.</p>
-  <h3>Keyboard</h3><dl class="shortcut-list"><dt>Space</dt><dd>Pause / play</dd><dt>T</dt><dd>Tap tempo</dd><dt>[ / ]</dt><dd>Decrease / increase seconds per recitation</dd><dt>H</dt><dd>Hide / show controls</dd><dt>?</dt><dd>Explain controls</dd><dt>R</dt><dd>Tibetan / phonetics</dd><dt>P</dt><dd>Front syllable readout</dd><dt>F</dt><dd>Full screen, where supported</dd><dt>Esc</dt><dd>Close a panel</dd></dl>
+  <h3>Keyboard</h3><dl class="shortcut-list"><dt>Space</dt><dd>Pause / play</dd><dt>T</dt><dd>Tap tempo</dd><dt>[ / ]</dt><dd>Decrease / increase seconds per recitation</dd><dt>C</dt><dd>Fixed / free camera</dd><dt>H</dt><dd>Hide / show controls</dd><dt>?</dt><dd>Explain controls</dd><dt>R</dt><dd>Tibetan / phonetics</dd><dt>P</dt><dd>Front syllable readout</dd><dt>F</dt><dd>Full screen, where supported</dd><dt>Esc</dt><dd>Close a panel</dd></dl>
   <h3>Practice &amp; support</h3><p>Visual settings are adjustable aids. For the details of a particular practice, follow the instructions you have received. The heart opens PayPal to support Dharma translation projects and this work.</p>
 </template>
 <div id="toast" role="status" aria-live="polite"></div>

@@ -160,6 +160,7 @@ export function buildSettings(root, ctx) {
   );
   const script = section('Script',
     segmented('script', 'Syllables on the ring', [['tibetan', 'བོད་ཡིག', 'bo'], ['phonetics', 'Phonetics']]),
+    toggle('phoneticsBelow', 'Latin phonetics beneath Tibetan'),
     toggle('readout', 'Show phonetic readout'),
   );
 

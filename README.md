@@ -214,3 +214,20 @@ fresh offline launches at both root and subpath URLs. The latter switches throug
 all mantras, including ones never opened online. `npm run test:browser` runs both
 browser suites. Native browser installation UI still needs a real-device check
 in Safari and Chrome/Edge; the suite tests the app’s prompt handling.
+
+
+### Paired phonetics and camera shortcuts
+
+The **Aa Phonetics** button above playback adds small Latin syllables directly
+beneath each Tibetan syllable in the rotating garland. Both share the same
+highlight signal and scale together. Labels stay beneath their syllables when
+orbiting, and the camera/seat/vajra bounds include the extra text. The preference
+is remembered across mantras; Latin-only lettering and the larger front-syllable
+readout remain available in Settings → Practice → Script.
+
+The adjacent **Fixed / Free** switch unlocks orbiting without moving the camera.
+Drag to turn; pinch or scroll to zoom. Fixed recentres the selected view. Press
+**C** to switch modes when focus is outside a control. The guide and question-mark
+overlay describe both shortcuts. `tests/phonetics-camera.cjs` checks paired glyph
+alignment and synchronized highlighting, rotation continuity, camera transitions,
+saved preferences and responsive control layout.

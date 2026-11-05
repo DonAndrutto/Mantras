@@ -71,7 +71,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.locator('#helpBtn').click();
     await snap(page, 'controls-mobile');
     assert.equal(await page.locator('#topControls').evaluate(n => n.inert), true);
-    assert.equal(await page.locator('#helpLabels .help-chip').count(), 8);
+    assert.equal(await page.locator('#helpLabels .help-chip').count(), 11);
     await page.locator('#fullGuideBtn').click();
     await page.keyboard.press('Escape');
     assert.equal(await page.evaluate(() => document.activeElement.id), 'fullGuideBtn');
