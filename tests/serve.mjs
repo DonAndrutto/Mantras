@@ -13,13 +13,16 @@ const types = {
   '.png': 'image/png', '.ttf': 'font/ttf', '.woff2': 'font/woff2',
 };
 
-export function serve(port = 8000) {
+export function serve(port = 8000, { basePath = '/', overrides = new Map() } = {}) {
   const server = createServer(async (req, res) => {
-    const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname)).replace(/^(\.\.[/\\])+/, '');
+    const pathname = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    if (!pathname.startsWith(basePath)) { res.writeHead(404).end('not found'); return; }
+    const path = normalize('/' + pathname.slice(basePath.length)).replace(/^(\.\.[/\\])+/, '');
     const file = join(root, path.endsWith('/') ? path + 'index.html' : path);
     try {
-      const body = await readFile(file);
-      res.writeHead(200, { 'content-type': types[extname(file)] || 'application/octet-stream' });
+      const override = overrides.get(path.slice(1));
+      const body = override?.body ?? await readFile(file);
+      res.writeHead(override?.status ?? 200, { 'content-type': types[extname(file)] || 'application/octet-stream' });
       res.end(body);
     } catch {
       res.writeHead(404).end('not found');

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node tests/serve.mjs",
     "test": "node --test",
-    "test:browser": "node tests/browser.cjs"
+    "test:browser": "node tests/browser.cjs && node tests/welcome-browser.cjs",
+    "precache": "node scripts/update-precache.mjs"
   },
   "engines": {
     "node": ">=22.15"
