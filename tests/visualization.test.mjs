@@ -4,6 +4,8 @@ import { registerHooks } from 'node:module';
 import { defaultsFor, loadSettings, saveSettings, loadCount } from '../js/settings.js';
 import vajrasattva from '../mantras/vajrasattva.js';
 import tara from '../mantras/green-tara.js';
+import kurukulle from '../mantras/kurukulle.js';
+import { withVariant } from '../mantras/index.js';
 import { createQualityController } from '../js/quality.js';
 
 registerHooks({ resolve(specifier, context, next) {
@@ -30,6 +32,23 @@ test('outward facing is opt-in, validated and saved per mantra', () => {
   assert.equal(loadSettings(vajrasattva).faceOutward, false);
   storage.set('mantras:settings:vajrasattva', JSON.stringify({ faceOutward: 'true' }));
   assert.equal(loadSettings(vajrasattva).faceOutward, false);
+});
+
+test('outward facing stays separate for Kurukulle variants without changing saved counts', () => {
+  storage.clear();
+  const approach = withVariant(kurukulle, 'approach');
+  const accomplishment = withVariant(kurukulle, 'accomplishment');
+  storage.set('mantras:count:kurukulle/approach', '{"total":108}');
+  storage.set('mantras:count:kurukulle/accomplishment', '{"total":217}');
+  saveSettings(approach, { ...defaultsFor(approach), faceOutward: true });
+  assert.equal(loadSettings(approach).faceOutward, true);
+  assert.equal(loadSettings(accomplishment).faceOutward, false);
+  saveSettings(accomplishment, { ...defaultsFor(accomplishment), faceOutward: true });
+  saveSettings(approach, defaultsFor(approach));
+  assert.equal(loadSettings(approach).faceOutward, false);
+  assert.equal(loadSettings(accomplishment).faceOutward, true);
+  assert.equal(loadCount(approach), 108);
+  assert.equal(loadCount(accomplishment), 217);
 });
 
 test('old preferences and counts survive; malformed saved settings cannot corrupt rendering', () => {

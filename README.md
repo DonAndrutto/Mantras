@@ -215,7 +215,7 @@ It checks a full welcome rotation without counting, saved preferences, small
 portrait/landscape/tablet layouts, guide tabs, modal focus, donation destination,
 installation invitation and dismissal, reduced motion, renderer recovery, and
 fresh offline launches at both root and subpath URLs. The latter switches through
-all mantras, including ones never opened online. `npm run test:browser` runs both
+all mantras, including ones never opened online. `npm run test:browser` runs all
 browser suites. Native browser installation UI still needs a real-device check
 in Safari and Chrome/Edge; the suite tests the app’s prompt handling.
 
@@ -235,3 +235,11 @@ Drag to turn; pinch or scroll to zoom. Fixed recentres the selected view. Press
 overlay describe both shortcuts. `tests/phonetics-camera.cjs` checks paired glyph
 alignment and synchronized highlighting, rotation continuity, camera transitions,
 saved preferences and responsive control layout.
+
+`tests/outward-browser.cjs` additionally exercises Vajrasattva's elliptical ring
+in both rotation directions and syllable orders, Tibetan with paired Latin and
+Latin-only script, Fixed and Free cameras, live and paused recitation, automatic
+counting, per-mantra preferences, and a cold offline launch under `/Mantras/`.
+Node tests also check that Kurukulle's variants retain independent preferences
+without changing their saved counts. Set `SCREENSHOT_DIR` for visual snapshots;
+set `APP_URL` to run this integration check against a deployed app instead.
