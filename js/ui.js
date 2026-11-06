@@ -159,6 +159,8 @@ export function buildSettings(root, ctx) {
     el('div', { class: 'hint', text: 'Held more than once, the mantra runs closer together round the same garland. The speed stays per recitation; a round counts each one.' }),
   );
   const script = section('Script',
+    toggle('faceOutward', 'Face syllables away from the seed'),
+    el('div', { class: 'hint', text: 'Syllables stay upright and face outward around the ring. Turn off to face the viewer.' }),
     segmented('script', 'Syllables on the ring', [['tibetan', 'བོད་ཡིག', 'bo'], ['phonetics', 'Phonetics']]),
     toggle('phoneticsBelow', 'Latin phonetics beneath Tibetan'),
     toggle('readout', 'Show phonetic readout'),

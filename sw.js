@@ -2,7 +2,7 @@
 // so an active recitation never mixes two releases or reloads without consent.
 // Run node scripts/update-precache.mjs after editing shipped files.
 // BEGIN GENERATED
-const VERSION = 'f4cae0dc94fd6bb9';
+const VERSION = '69d15752b45db52a';
 const PRECACHE = [
   "app.css",
   "fonts/EBGaramond-Medium-latin-ext.woff2",

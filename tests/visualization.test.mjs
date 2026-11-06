@@ -19,6 +19,19 @@ const { fixedPose } = await import('../js/camera.js');
 const storage = new Map();
 globalThis.localStorage = { getItem: k => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, v) };
 
+test('outward facing is opt-in, validated and saved per mantra', () => {
+  storage.clear();
+  assert.equal(loadSettings(vajrasattva).faceOutward, false);
+  const s = { ...defaultsFor(vajrasattva), faceOutward: true };
+  saveSettings(vajrasattva, s);
+  assert.equal(loadSettings(vajrasattva).faceOutward, true);
+  assert.equal(loadSettings(tara).faceOutward, false);
+  saveSettings(vajrasattva, { ...s, faceOutward: false });
+  assert.equal(loadSettings(vajrasattva).faceOutward, false);
+  storage.set('mantras:settings:vajrasattva', JSON.stringify({ faceOutward: 'true' }));
+  assert.equal(loadSettings(vajrasattva).faceOutward, false);
+});
+
 test('old preferences and counts survive; malformed saved settings cannot corrupt rendering', () => {
   storage.clear();
   storage.set('mantras:settings:vajrasattva', JSON.stringify({ period: 23, 'seat.lotus': true, seedScale: 2,

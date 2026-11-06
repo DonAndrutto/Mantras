@@ -2,8 +2,9 @@
 // the light around them. Units are garland radii; the ring lies in the XZ
 // plane around the origin and the default viewer stands on +Z.
 //
-// Every syllable, and the seed, stands upright facing the viewer from any
-// angle and any camera. A syllable at angle φ stands at (sin φ, 0, cos φ), so
+// Syllables face the viewer by default, or face outward around the seed when
+// selected. The seed always faces the viewer. A syllable at angle φ stands at
+// (sin φ, 0, cos φ), so
 // φ = 0 is the front and φ grows counter-clockwise seen from above.
 import * as THREE from 'three';
 import { tibetanSyllables, ringSyllables } from './tibetan.js';
@@ -191,7 +192,6 @@ export class Stage {
     camera.getWorldPosition(this._cam);
     this.group.worldToLocal(this._cam);
     camera.getWorldQuaternion(this._q);
-    this._down.set(0, -1, 0).applyQuaternion(this._q);
     const front = Math.atan2(this._cam.x, this._cam.z);
     const ca = Math.cos(Math.atan2(this._cam.y, Math.hypot(this._cam.x, this._cam.z)));
 
@@ -240,7 +240,11 @@ export class Stage {
         const hl = hlSpec ? Math.exp(-(d * d) / (2 * hlSpec.sigma * hlSpec.sigma)) * settings.highlight : 0;
         const size = em * (1 + (hlSpec?.scale ?? 0) * hl);
         m.scale.setScalar(size);
-        m.quaternion.copy(this._q);
+        if (settings.faceOutward) {
+          // Rotate the glyph's +Z front away from the hub, keeping +Y upright.
+          // Use its actual position so elliptical rings also face radially out.
+          m.rotation.set(0, Math.atan2(m.position.x, m.position.z), 0);
+        } else m.quaternion.copy(this._q);
         // a syllable nearer than the seed and over it veils it, however faint
         const v = this._toView(m.position, this._v);
         let veil = 0;
@@ -255,9 +259,10 @@ export class Stage {
         u.mixHi.value = Math.min(1, hl);
         u.glow.value = settings.glow * ((s.glow ?? 0) + (hlSpec?.glow ?? 0) * hl);
         if (it.phonetic) {
-          // Screen-down keeps the Latin directly beneath its Tibetan when orbiting.
+          // Follow the syllable's own down direction in either orientation mode.
+          this._down.set(0, -1, 0).applyQuaternion(m.quaternion);
           it.phonetic.position.copy(m.position).addScaledVector(this._down, size * it.labelOffset);
-          it.phonetic.quaternion.copy(this._q);
+          it.phonetic.quaternion.copy(m.quaternion);
           it.phonetic.scale.setScalar(size * it.labelScale);
           const pu = it.phonetic.material.uniforms;
           pu.opacity.value = u.opacity.value * 0.86;

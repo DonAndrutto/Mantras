@@ -18,7 +18,11 @@ no build dependencies, with everything (three.js, fonts) served from this reposi
 | `#amitabha` | Om Ami Dewa Hrih, ༀ་ཨ་མི་དྷེ་ཝ་ཧྲཱི༔, around ཧྲཱི༔ |
 
 Every mantra moves the same way: the syllables stand upright facing you from any
-angle, in the fixed view and in the free camera.
+angle, in the fixed view and in the free camera, by default. Enable **Face syllables
+away from the seed** in **Settings → Practice → Script** to turn each syllable
+outward around the seed as the garland rotates. Latin labels turn with their
+Tibetan syllables; the seed still faces you. This option is saved per mantra and
+can be switched off at any time.
 
 ## Using it
 

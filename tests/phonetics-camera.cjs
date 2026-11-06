@@ -38,6 +38,40 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         && Number.isFinite(p.x+p.y+p.z);
     })));
     assert.equal(await verifyPairs(),true);
+    await page.locator('#settingsBtn').click();
+    await page.locator('summary').filter({hasText:/^Script$/}).click();
+    const outward = page.getByRole('switch', {name:'Face syllables away from the seed', exact:true});
+    await outward.check();
+    await page.waitForFunction(()=>sample.settings.faceOutward);
+    assert.equal(await page.evaluate(async()=>{
+      const THREE = await import('three');
+      const {stage, settings, camera} = sample;
+      const originalSpin = settings.spin;
+      const originalCamera = camera.quaternion.clone();
+      try {
+        for (const spin of ['cw','ccw']) for (const rot of [0, .7, Math.PI, 5]) {
+          settings.spin = spin;
+          camera.lookAt(1, 2, -1);
+          stage.update({...sample, rot});
+          for (const r of stage.rings) for (const it of r.items) {
+            const normal = new THREE.Vector3(0,0,1).applyQuaternion(it.mesh.quaternion);
+            const radial = it.mesh.position.clone().setY(0).normalize();
+            if (normal.distanceTo(radial)>1e-6) return false;
+            if (it.phonetic.quaternion.angleTo(it.mesh.quaternion)>1e-6) return false;
+            const delta = it.phonetic.position.clone().sub(it.mesh.position);
+            if (Math.abs(delta.x)+Math.abs(delta.z)>1e-6 || delta.y>=0) return false;
+          }
+          if (stage.seed.quaternion.angleTo(camera.quaternion)>1e-6) return false;
+        }
+        return true;
+      } finally { settings.spin=originalSpin; camera.quaternion.copy(originalCamera); }
+    }),true,'syllables and labels face radially outward while seed follows camera');
+    await outward.uncheck();
+    await page.waitForFunction(()=>!sample.settings.faceOutward);
+    await page.waitForFunction(()=>sample.stage.rings.every(r=>r.items.every(it=>
+      it.mesh.quaternion.angleTo(sample.camera.quaternion)<1e-6)));
+    await page.locator('summary').filter({hasText:/^Script$/}).click();
+    await page.keyboard.press('Escape');
     const camera=()=>page.evaluate(()=>sample.camera.position.toArray());
     const fixed=await camera();
     await page.locator('#freeCameraBtn').click();await page.waitForTimeout(100);
