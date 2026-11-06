@@ -36,10 +36,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     };
     const scriptPanel = async () => {
       await page.locator('#settingsBtn').click();
+      assert.equal(await page.getByRole('button', { name: 'Face away from seed', exact: true }).isVisible(), true, 'orientation is visible without expanding a section');
       const group = page.locator('#settings details').filter({ has: page.locator('summary', { hasText: /^Script$/ }) });
       if (await group.getAttribute('open') === null) await group.locator('summary').click();
     };
-    const outward = () => page.getByRole('switch', { name: 'Face syllables away from the seed', exact: true });
+    const outward = () => page.getByRole('button', { name: 'Face away from seed', exact: true });
     const close = () => page.keyboard.press('Escape');
     const count = () => page.locator('#countBtn').innerText();
     const switchMantra = async id => {
@@ -56,13 +57,13 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.locator('#phoneticsBtn').click();
     await page.waitForFunction(() => outwardFrame.rot > .2);
     await scriptPanel();
-    assert.equal(await outward().isChecked(), false);
+    assert.equal((await outward().getAttribute('aria-pressed') === 'true'), false);
     await page.evaluate(() => {
       window.beforeOutward = { stage: outwardFrame.stage, rot: outwardFrame.rot,
         scripture: JSON.stringify(outwardFrame.stage.mantra), period: outwardFrame.settings.period };
     });
     const beforeCount = await count();
-    await outward().check();
+    await outward().click();
     await page.waitForFunction(() => outwardFrame.settings.faceOutward);
     assert.equal(await page.evaluate(() => outwardFrame.stage === beforeOutward.stage
       && outwardFrame.rot === beforeOutward.rot
@@ -128,11 +129,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.locator('#playBtn').click();
     await scriptPanel();
     await page.evaluate(() => { window.pausedRot = outwardFrame.rot; });
-    await outward().uncheck();
+    await page.getByRole('button', { name: 'Face viewer', exact: true }).click();
     await page.waitForFunction(() => outwardFrame.stage.rings.every(r => r.items.every(it =>
       it.mesh.quaternion.angleTo(outwardFrame.camera.quaternion) < 1e-6
       && it.phonetic.quaternion.angleTo(outwardFrame.camera.quaternion) < 1e-6)));
-    await outward().check();
+    await outward().click();
     assert.equal(await page.evaluate(() => outwardFrame.rot === pausedRot), true);
     assert.equal(await page.locator('#playBtn').getAttribute('aria-pressed'), 'true');
     assert.equal(await count(), beforeCount);
@@ -152,7 +153,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await scriptPanel();
     const autoBefore = await page.evaluate(() => ({ rot: outwardFrame.rot,
       total: JSON.parse(localStorage.getItem('mantras:count:vajrasattva')).total }));
-    await outward().uncheck(); await outward().check();
+    await page.getByRole('button', { name: 'Face viewer', exact: true }).click(); await outward().click();
     assert.deepEqual(await page.evaluate(() => ({ rot: outwardFrame.rot,
       total: JSON.parse(localStorage.getItem('mantras:count:vajrasattva')).total })), autoBefore);
     await close();
@@ -182,7 +183,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.goto(url + '?installed=1#vajrasattva'); await enter();
     assert.equal(await page.evaluate(() => outwardFrame.settings.faceOutward), true);
     assert.equal(await count(), persistedCount);
-    await scriptPanel(); assert.equal(await outward().isChecked(), true); await close();
+    await scriptPanel(); assert.equal((await outward().getAttribute('aria-pressed') === 'true'), true); await close();
     await switchMantra('green-tara');
     assert.equal(await page.evaluate(() => outwardFrame.settings.faceOutward), false);
     assert.deepEqual(errors, []);

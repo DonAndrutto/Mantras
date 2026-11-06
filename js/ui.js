@@ -159,8 +159,6 @@ export function buildSettings(root, ctx) {
     el('div', { class: 'hint', text: 'Held more than once, the mantra runs closer together round the same garland. The speed stays per recitation; a round counts each one.' }),
   );
   const script = section('Script',
-    toggle('faceOutward', 'Face syllables away from the seed'),
-    el('div', { class: 'hint', text: 'Syllables stay upright and face outward around the ring. Turn off to face the viewer.' }),
     segmented('script', 'Syllables on the ring', [['tibetan', 'བོད་ཡིག', 'bo'], ['phonetics', 'Phonetics']]),
     toggle('phoneticsBelow', 'Latin phonetics beneath Tibetan'),
     toggle('readout', 'Show phonetic readout'),
@@ -258,7 +256,11 @@ export function buildSettings(root, ctx) {
     const body = el('div', { id: `panel-${id}`, role: 'tabpanel', 'aria-labelledby': `tab-${id}`, tabindex: 0 }, ...children.filter(Boolean));
     tabs.append(button); buttons.push(button); bodies.push(body);
   });
-  root.replaceChildren(tabs, ...bodies); select(0);
+  const orientation = el('div', { class: 'orientation-control' },
+    segmented('faceOutward', 'Mantra syllables face', [[false, 'Face viewer'], [true, 'Face away from seed']]),
+    el('p', { class: 'hint', text: 'Away from seed: letters stay upright and face outward as the garland turns. Latin labels turn with them. The central seed always faces you.' }),
+  );
+  root.replaceChildren(orientation, tabs, ...bodies); select(0);
   return { refresh: () => { for (const f of syncs) f(ctx.settings); } };
 
 }
