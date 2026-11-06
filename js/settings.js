@@ -17,6 +17,7 @@ export function defaultsFor(mantra) {
     angle: mantra.view.angle,          // degrees above the ring's plane
     camera: 'fixed',                   // 'fixed' | 'free'
     phoneticsBelow: false,             // Latin labels travel beneath Tibetan syllables
+    faceOutward: false,                // ring syllables face away from the seed
     script: 'tibetan',                 // 'tibetan' | 'phonetics'
     glow: 1,
     highlight: 1,
