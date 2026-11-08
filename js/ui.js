@@ -158,11 +158,18 @@ export function buildSettings(root, ctx) {
     segmented('repeat', 'The mantra in the garland', [[1, 'Once'], [2, 'Twice'], [3, 'Three times']]),
     el('div', { class: 'hint', text: 'Held more than once, the mantra runs closer together round the same garland. The speed stays per recitation; a round counts each one.' }),
   );
+  const orientation = el('div', { class: 'orientation-control', role: 'group',
+    'aria-label': 'Syllable facing direction', 'aria-describedby': 'orientation-hint' },
+    segmented('faceOutward', 'Syllable facing direction', [[false, 'Toward viewer'], [true, 'Away from seed']]),
+    el('p', { id: 'orientation-hint', class: 'hint', text: 'Away from seed: syllables stay upright and face outward from the central seed as the garland turns. Latin phonetics face the same way. The central seed always faces you. Saved for this mantra.' }),
+  );
   const script = section('Script',
+    orientation,
     segmented('script', 'Syllables on the ring', [['tibetan', 'བོད་ཡིག', 'bo'], ['phonetics', 'Phonetics']]),
     toggle('phoneticsBelow', 'Latin phonetics beneath Tibetan'),
     toggle('readout', 'Show phonetic readout'),
   );
+  script.open = true;
 
   // ── light & effects ────────────────────────────────────────────────────
   const fxRows = (mantra.effects || []).flatMap(fx => [
@@ -230,11 +237,12 @@ export function buildSettings(root, ctx) {
   const tabs = el('div', { class: 'settings-tabs', role: 'tablist', 'aria-label': 'Settings category' });
   const panels = [
     ['practice', 'Practice', [
+      script,
       action('Pace & tap tempo', () => ctx.actions.panel('pace')),
       action('Counter', () => ctx.actions.panel('counter')),
       toggle('stillness', 'Stillness — stop all animation'),
       el('p', { class: 'hint', text: 'Stillness also stops automatic counting. Manual counting remains available.' }),
-      variants, script, garland,
+      variants, garland,
     ]],
     ['visualization', 'Visualization', [vajra, seat, light]],
     ['view', 'View', [view, size, screen]],
@@ -256,11 +264,7 @@ export function buildSettings(root, ctx) {
     const body = el('div', { id: `panel-${id}`, role: 'tabpanel', 'aria-labelledby': `tab-${id}`, tabindex: 0 }, ...children.filter(Boolean));
     tabs.append(button); buttons.push(button); bodies.push(body);
   });
-  const orientation = el('div', { class: 'orientation-control' },
-    segmented('faceOutward', 'Mantra syllables face', [[false, 'Face viewer'], [true, 'Face away from seed']]),
-    el('p', { class: 'hint', text: 'Away from seed: letters stay upright and face outward as the garland turns. Latin labels turn with them. The central seed always faces you.' }),
-  );
-  root.replaceChildren(orientation, tabs, ...bodies); select(0);
+  root.replaceChildren(tabs, ...bodies); select(0);
   return { refresh: () => { for (const f of syncs) f(ctx.settings); } };
 
 }

@@ -14,7 +14,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       executablePath: process.env.CHROMIUM_EXECUTABLE_PATH || undefined,
       args: ['--no-sandbox', '--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
     });
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
     let page = await context.newPage();
     const errors = [];
     const watch = p => p.on('pageerror', e => errors.push(e.message));
@@ -36,11 +36,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     };
     const scriptPanel = async () => {
       await page.locator('#settingsBtn').click();
-      assert.equal(await page.getByRole('button', { name: 'Face away from seed', exact: true }).isVisible(), true, 'orientation is visible without expanding a section');
+      await page.getByRole('tab', { name: 'Practice', exact: true }).click();
       const group = page.locator('#settings details').filter({ has: page.locator('summary', { hasText: /^Script$/ }) });
       if (await group.getAttribute('open') === null) await group.locator('summary').click();
     };
-    const outward = () => page.getByRole('button', { name: 'Face away from seed', exact: true });
+    const outward = () => page.getByRole('button', { name: 'Away from seed', exact: true });
     const close = () => page.keyboard.press('Escape');
     const count = () => page.locator('#countBtn').innerText();
     const switchMantra = async id => {
@@ -49,6 +49,44 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     };
     await page.goto(url + '#vajrasattva');
     await enter();
+    // There is one direction control, inside the initially expanded Script
+    // section of Practice. It must disappear with that tab, not float above it.
+    await page.locator('#settingsBtn').click();
+    assert.equal(await page.getByRole('tab', { name: 'Practice', exact: true }).getAttribute('aria-selected'), 'true');
+    const direction = page.getByRole('group', { name: 'Syllable facing direction', exact: true });
+    assert.equal(await direction.count(), 1);
+    assert.equal(await page.locator('#panel-practice details[open]').filter({
+      has: direction }).locator('summary').innerText(), 'Script');
+    for (const tab of ['Visualization', 'View']) {
+      await page.getByRole('tab', { name: tab, exact: true }).click();
+      assert.equal(await outward().isVisible(), false, `direction belongs only to Practice, not ${tab}`);
+    }
+    await page.getByRole('tab', { name: 'Practice', exact: true }).click();
+    for (const [width, height] of [[320,568], [390,844], [568,320], [1440,1000]]) {
+      await page.setViewportSize({ width, height });
+      for (const name of ['Away from seed', 'Toward viewer']) {
+        const button = direction.getByRole('button', { name, exact: true });
+        await button.tap();
+        assert.equal(await button.getAttribute('aria-pressed'), 'true');
+        const rect = await button.boundingBox();
+        assert.ok(rect.width >= 44 && rect.height >= 44, 'at least 44 px touch targets');
+        assert.ok(rect.x >= 0 && rect.x + rect.width <= width && rect.y >= 0
+          && rect.y + rect.height <= height, `${width}×${height}: direction button within viewport`);
+      }
+      assert.equal(await page.locator('#settingsBody').evaluate(n => n.scrollWidth <= n.clientWidth), true,
+        'settings have no horizontal overflow');
+      if (process.env.SCREENSHOT_DIR) {
+        fs.mkdirSync(process.env.SCREENSHOT_DIR, { recursive: true });
+        await page.screenshot({ path: path.join(process.env.SCREENSHOT_DIR, `script-${width}x${height}.png`) });
+      }
+    }
+    await outward().focus(); await page.keyboard.press('Space');
+    assert.equal(await outward().getAttribute('aria-pressed'), 'true');
+    await page.getByRole('button', { name: 'Toward viewer', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    assert.equal(await outward().getAttribute('aria-pressed'), 'false');
+    await page.setViewportSize({ width: 390, height: 844 });
+    await close();
     // Seed a nonzero counter using the real counter controls.
     await page.locator('#countBtn').click();
     await page.getByRole('button', { name: 'By tapping', exact: true }).click();
@@ -129,7 +167,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.locator('#playBtn').click();
     await scriptPanel();
     await page.evaluate(() => { window.pausedRot = outwardFrame.rot; });
-    await page.getByRole('button', { name: 'Face viewer', exact: true }).click();
+    await page.getByRole('button', { name: 'Toward viewer', exact: true }).click();
     await page.waitForFunction(() => outwardFrame.stage.rings.every(r => r.items.every(it =>
       it.mesh.quaternion.angleTo(outwardFrame.camera.quaternion) < 1e-6
       && it.phonetic.quaternion.angleTo(outwardFrame.camera.quaternion) < 1e-6)));
@@ -153,7 +191,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await scriptPanel();
     const autoBefore = await page.evaluate(() => ({ rot: outwardFrame.rot,
       total: JSON.parse(localStorage.getItem('mantras:count:vajrasattva')).total }));
-    await page.getByRole('button', { name: 'Face viewer', exact: true }).click(); await outward().click();
+    await page.getByRole('button', { name: 'Toward viewer', exact: true }).click(); await outward().click();
     assert.deepEqual(await page.evaluate(() => ({ rot: outwardFrame.rot,
       total: JSON.parse(localStorage.getItem('mantras:count:vajrasattva')).total })), autoBefore);
     await close();

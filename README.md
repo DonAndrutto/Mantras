@@ -18,10 +18,12 @@ no build dependencies, with everything (three.js, fonts) served from this reposi
 | `#amitabha` | Om Ami Dewa Hrih, ༀ་ཨ་མི་དྷེ་ཝ་ཧྲཱི༔, around ཧྲཱི༔ |
 
 Every mantra moves the same way: the syllables stand upright facing you from any
-angle, in the fixed view and in the free camera, by default. Choose **Face away from seed** at the top of **Settings** to turn each syllable
-outward around the seed as the garland rotates. Latin labels turn with their
+angle, in the fixed view and in the free camera, by default. Choose **Away from
+seed** under **Settings → Practice → Script → Syllable facing direction** to turn
+each syllable outward around the seed as the garland rotates. Latin labels turn with their
 Tibetan syllables; the seed still faces you. This option is saved per mantra and
-can be switched off at any time.
+can be switched back to **Toward viewer** at any time. Script is expanded by
+default, with the direction buttons first and touch targets at least 44 px high.
 
 ## Using it
 
@@ -203,6 +205,10 @@ are current. Deploy the complete repository together. An updated worker waits
 until all existing Mantras windows close; the app reports “Update ready”. It
 never forces a reload in the middle of practice. Counts and preferences remain
 in local storage across releases.
+An installed app can therefore keep showing an older settings interface while
+an update waits. Once **Update ready** appears, close the installed app and all
+Mantras browser tabs, then reopen. Reloading a tab while another Mantras window
+is open can keep the previous worker in control.
 
 The additional optional integration suite is:
 
