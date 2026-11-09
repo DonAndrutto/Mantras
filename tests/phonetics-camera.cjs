@@ -39,8 +39,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     })));
     assert.equal(await verifyPairs(),true);
     await page.locator('#settingsBtn').click();
-    await page.locator('summary').filter({hasText:/^Script$/}).click();
-    const outward = page.getByRole('button', {name:'Face away from seed', exact:true});
+    const outward = page.getByRole('button', {name:'Away from seed', exact:true});
     await outward.click();
     await page.waitForFunction(()=>sample.settings.faceOutward);
     assert.equal(await page.evaluate(async()=>{
@@ -66,11 +65,10 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
         return true;
       } finally { settings.spin=originalSpin; camera.quaternion.copy(originalCamera); }
     }),true,'syllables and labels face radially outward while seed follows camera');
-    await page.getByRole('button', {name:'Face viewer', exact:true}).click();
+    await page.getByRole('button', {name:'Toward viewer', exact:true}).click();
     await page.waitForFunction(()=>!sample.settings.faceOutward);
     await page.waitForFunction(()=>sample.stage.rings.every(r=>r.items.every(it=>
       it.mesh.quaternion.angleTo(sample.camera.quaternion)<1e-6)));
-    await page.locator('summary').filter({hasText:/^Script$/}).click();
     await page.keyboard.press('Escape');
     const camera=()=>page.evaluate(()=>sample.camera.position.toArray());
     const fixed=await camera();
@@ -110,7 +108,6 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     if(out)await page.screenshot({path:path.join(out,'paired-vajrasattva.png')});
     await page.locator('#phoneticsBtn').click();assert.equal(await page.locator('#phoneticsBtn').getAttribute('aria-pressed'),'false');
     await page.locator('#settingsBtn').click();
-    await page.locator('summary').filter({hasText:/^Script$/}).click();
     await page.getByRole('button',{name:'Phonetics',exact:true}).click();
     await page.keyboard.press('Escape');
     await page.locator('#phoneticsBtn').click();

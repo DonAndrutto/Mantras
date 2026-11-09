@@ -139,32 +139,59 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       await ctx.close();
     }
     // A downloaded update waits for the running session, then takes over offline.
-    const overrides = new Map();
+    const ui = fs.readFileSync(path.join(__dirname, '../js/ui.js'), 'utf8');
+    const worker = fs.readFileSync(path.join(__dirname, '../sw.js'), 'utf8');
+    const overrides = new Map([
+      ['js/ui.js', {body:ui.replaceAll('Syllable facing direction', 'Previous release direction')}],
+      ['sw.js', {body:worker.replace(/const VERSION = '[^']+';/, "const VERSION = 'test-previous-release';")}],
+    ]);
     const updateServer = await serve(0, {overrides}); servers.push(updateServer);
     const updateURL = `http://localhost:${updateServer.address().port}`;
-    const updateContext = await browser.newContext();
+    const updateContext = await browser.newContext({viewport:{width:390,height:844}, hasTouch:true});
+    await updateContext.addInitScript(() => Object.defineProperty(navigator, 'standalone', {value:true}));
     let up = await updateContext.newPage(); await up.goto(updateURL); await enter(up);
     await up.evaluate(async () => {
       await navigator.serviceWorker.ready;
       await caches.open('ngondro-keep');
       localStorage.setItem('mantras:count:vajra-guru', JSON.stringify({total:41}));
+      localStorage.setItem('mantras:settings:vajra-guru', JSON.stringify({faceOutward:true}));
     });
     await up.waitForFunction(() => !!navigator.serviceWorker.controller);
-    const worker = fs.readFileSync(path.join(__dirname, '../sw.js'), 'utf8');
-    overrides.set('sw.js', {body:worker.replace(/const VERSION = '[^']+';/, "const VERSION = 'test-release-2';")});
+    await up.reload(); await enter(up);
+    await up.locator('#settingsBtn').click();
+    assert.equal(await up.getByRole('group', {name:'Previous release direction',exact:true}).isVisible(), true);
+    await up.keyboard.press('Escape');
+    overrides.delete('sw.js');
+    overrides.delete('js/ui.js');
     overrides.set('app.css', {body:fs.readFileSync(path.join(__dirname, '../app.css'), 'utf8') + '\n/* release-two-marker */'});
     await up.evaluate(async () => (await navigator.serviceWorker.getRegistration()).update());
     await up.waitForFunction(async () => !!(await navigator.serviceWorker.getRegistration()).waiting);
     await up.waitForFunction(() => document.getElementById('offlineStatus').textContent === 'Update ready', null, {timeout:5000});
     assert.equal(await up.evaluate(async () => (await (await fetch('app.css')).text()).includes('release-two-marker')), false);
+    await up.locator('#settingsBtn').click();
+    assert.equal(await up.getByRole('group', {name:'Previous release direction',exact:true}).isVisible(), true,
+      'a waiting update must leave the running interface intact');
+    await up.keyboard.press('Escape');
     await up.close();
     up = await updateContext.newPage(); await up.goto(updateURL); await enter(up);
     await up.waitForFunction(async () => (await (await fetch('app.css')).text()).includes('release-two-marker'));
     assert.match(await up.locator('#countBtn').innerText(), /41\/108/);
+    const checkUpdatedScript = async () => {
+      await up.locator('#settingsBtn').click();
+      const direction = up.getByRole('group', {name:'Syllable facing direction',exact:true});
+      assert.equal(await direction.isVisible(), true, 'reopened app loads the updated settings interface');
+      assert.equal(await direction.getByRole('button', {name:'Away from seed',exact:true}).getAttribute('aria-pressed'), 'true',
+        'existing per-mantra orientation survives the update');
+      assert.equal(await up.getByRole('group', {name:'Previous release direction',exact:true}).count(), 0);
+      await up.keyboard.press('Escape');
+    };
+    await checkUpdatedScript();
     assert.equal(await up.evaluate(async () => (await caches.keys()).includes('ngondro-keep')), true);
     await updateContext.setOffline(true);
     await up.reload(); await enter(up);
     assert.equal(await up.evaluate(async () => (await (await fetch('app.css')).text()).includes('release-two-marker')), true);
+    await checkUpdatedScript();
+    assert.match(await up.locator('#countBtn').innerText(), /41\/108/);
     await updateContext.close();
 
     // A missing required font must not report a complete offline download.
