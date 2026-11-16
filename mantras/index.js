@@ -2,6 +2,7 @@
 // the address names none. A new mantra is one file in this folder and one line here.
 import vajrasattva from './vajrasattva.js';
 import vajraGuru from './vajra-guru.js';
+import vajrakilaya from './vajrakilaya.js';
 import greenTara from './green-tara.js';
 import whiteTara from './white-tara.js';
 import dzambhala from './dzambhala.js';
@@ -9,7 +10,7 @@ import kurukulle from './kurukulle.js';
 import chenrezig from './chenrezig.js';
 import amitabha from './amitabha.js';
 
-export const MANTRAS = [vajrasattva, vajraGuru, greenTara, whiteTara, dzambhala, kurukulle, chenrezig, amitabha];
+export const MANTRAS = [vajrasattva, vajraGuru, vajrakilaya, greenTara, whiteTara, dzambhala, kurukulle, chenrezig, amitabha];
 
 export function findMantra(id) {
   return MANTRAS.find(m => m.id === id) || null;

@@ -10,6 +10,7 @@ no build dependencies, with everything (three.js, fonts) served from this reposi
 | --- | --- |
 | `#vajrasattva` | Vajrasattva's hundred-syllable mantra turning around ཧཱུྃ, with ཨོཾ་བཛྲ་སཏྭ་ཨཱཿ standing still around the seed; nectar falling |
 | `#vajra-guru` | The Vajra Guru mantra around ཧྲཱིཿ |
+| `#vajrakilaya` | Vajrakilaya's mantra around ཧཱུྂ (HUNG), both dark blue, with equal gaps between the syllables |
 | `#green-tara` | Green Tara's mantra around ཏཱྃ |
 | `#white-tara` | White Tara's long-life mantra around ཏཱྃ |
 | `#dzambhala` | Dzambhala's mantra around ཛྃ |
@@ -192,7 +193,7 @@ from the welcome footer. Installed windows suppress the invitation.
 
 ### Offline release procedure
 
-The service worker downloads all shipped modules, all eight mantra definitions,
+The service worker downloads all shipped modules, all mantra definitions,
 fonts, icons, styles and the shell before reporting **Ready offline**. A failed
 download does not activate a partial release. Paths work at the domain root and
 under `/Mantras/`. Each cache is namespaced to this app and its scope, so it does

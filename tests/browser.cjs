@@ -182,7 +182,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await range('Seat opacity', 0.3); await close(); await snap('lotus-translucent');
 
     // Other mantras do not acquire Vajrasattva controls; all variants still load.
-    for (const id of ['green-tara', 'white-tara', 'vajra-guru', 'kurukulle', 'chenrezig', 'amitabha', 'dzambhala']) {
+    for (const id of (await import('../mantras/index.js')).MANTRAS.map(m => m.id).filter(id => id !== 'vajrasattva')) {
       await page.goto(`${url}/#${id}`); await page.waitForFunction(id => location.hash === `#${id}` && document.body.classList.contains('ready'), id);
       await page.waitForTimeout(100);
       assert.equal(await page.locator('#vajraViews').isVisible(), false);
