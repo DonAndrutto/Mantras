@@ -91,6 +91,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.locator('#countBtn').click();
     await page.getByRole('button', { name: 'By tapping', exact: true }).click();
     await page.getByRole('button', { name: '+1', exact: true }).click();
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('mantras:count:vajrasattva') || '{}').total === 1);
     await close();
     await page.locator('#phoneticsBtn').click();
     await page.waitForFunction(() => outwardFrame.rot > .2);
