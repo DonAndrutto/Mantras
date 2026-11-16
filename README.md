@@ -33,9 +33,13 @@ default, with the direction buttons first and touch targets at least 44 px high.
   one being recited. Set it with the slider (0.5–180 s), type it
   (to 0.01 s), step it by ±0.05 or ±1 s (hold to repeat), or **Tap** at the start of each
   recitation: the garland takes the pace of your last taps and brings the first syllable
-  to the front. Tap tempo can be pinned to the bottom bar.
+  to the front. Tap tempo can be pinned to the bottom bar. Recitation timing follows elapsed
+  time even at low frame rates; paused, hidden and settings-panel time is excluded.
 - **Counter**: counts each round, or counts presses of +1 in the counter panel (*By tapping*). Tap the bottom counter to open its controls. Shown as
-  beads on the current mala · malas completed. Kept per mantra in this browser.
+  beads on the current mala · malas completed. Kept per mantra in this browser. Changes and
+  resets synchronize across open windows. Current browsers on HTTPS or localhost serialize
+  updates with Web Locks; older browsers re-read the latest saved total before each change.
+  When storage is blocked or full, counting continues in memory for the current window.
 - **Size**: garland, letters and seed separately, ×0.30–×3.00.
 - **View**: *Fixed* is the designed view (angle adjustable); *Free* is the World System's
   camera — drag to go round, pinch or scroll to come nearer, two fingers to slide.
@@ -116,6 +120,7 @@ mantra's `effects` list and registered in `js/app.js`.
 | `js/vajra.js` | Five-pronged vajra, central hub and scene bounds. |
 | `js/dialogs.js` | Modal sheets, nested focus return and keyboard focus trapping. |
 | `js/quality.js` | Adaptive rendering quality with hysteresis. |
+| `js/wake-lock.js` | Screen-awake requests follow the latest playback/visibility state, including delayed grants and releases. |
 | `js/glyphs.js` | Syllables as distance fields with their blurred glow (kept for reuse), and the shader that draws them sharp at any size. |
 | `js/camera.js` | The fixed, framed view and the free orbit camera. |
 | `js/xr.js` | WebXR detection and session start. |

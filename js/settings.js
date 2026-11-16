@@ -90,7 +90,7 @@ export function validateSetting(key, value, fallback) {
 
 const slot = m => (m.variant ? `${m.id}/${m.variant}` : m.id);
 const key = m => `mantras:settings:${slot(m)}`;
-const countKey = m => `mantras:count:${slot(m)}`;
+export const countKey = m => `mantras:count:${slot(m)}`;
 
 function read(k) {
   try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; }
@@ -126,11 +126,38 @@ export function saveSettings(mantra, settings) {
   write('mantras:prefs', prefs);
 }
 
+// Keep counting in this window when browser storage is blocked or full.
+const unsavedCounts = new Map();
 export function loadCount(mantra) {
+  if (unsavedCounts.has(countKey(mantra))) return unsavedCounts.get(countKey(mantra));
   const c = read(countKey(mantra));
   return Number.isSafeInteger(c?.total) && c.total >= 0 ? c.total : 0;
 }
-export function saveCount(mantra, total) { write(countKey(mantra), { total }); }
+export function saveCount(mantra, total) {
+  const key = countKey(mantra);
+  try {
+    localStorage.setItem(key, JSON.stringify({ total }));
+    unsavedCounts.delete(key);
+  } catch { unsavedCounts.set(key, total); }
+}
+
+// Read and change the latest total inside one origin-wide critical section.
+// Null resets the count, using the same queue as manual and automatic changes.
+export async function changeCount(mantra, delta) {
+  const update = () => {
+    const before = loadCount(mantra);
+    const total = delta === null ? 0 : Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, before + delta));
+    saveCount(mantra, total);
+    return { before, total };
+  };
+  // Web Locks is available in current browsers on HTTPS and localhost. Older
+  // browsers still re-read storage for every change instead of using stale UI.
+  if (globalThis.navigator?.locks) {
+    try { return await navigator.locks.request(countKey(mantra), update); }
+    catch { /* unavailable in this context; retain local counting */ }
+  }
+  return update();
+}
 
 export function loadVariant(id) { return read(`mantras:variant:${id}`); }
 export function saveVariant(id, variant) { write(`mantras:variant:${id}`, variant); }

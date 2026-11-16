@@ -151,7 +151,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.locator('#countBtn').click();
     await page.getByRole('button', { name: 'By tapping', exact: true }).click();
     await page.getByRole('button', { name: '+1', exact: true }).click();
-    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('mantras:count:vajrasattva')).total), 218);
+    await page.waitForFunction(() => JSON.parse(localStorage.getItem('mantras:count:vajrasattva')).total === 218);
     await close();
 
     // Free camera: selecting the already active framing returns to a fixed view.

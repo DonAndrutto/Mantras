@@ -2,7 +2,7 @@
 // turns the garland, the counter, the bars and the sheets.
 import * as THREE from 'three';
 import { MANTRAS, findMantra, withVariant } from '../mantras/index.js';
-import { loadSettings, saveSettings, defaultsFor, loadCount, saveCount, lastMantra, rememberMantra, loadVariant, saveVariant, PERIOD_MIN, PERIOD_MAX, validateSetting } from './settings.js';
+import { loadSettings, saveSettings, defaultsFor, loadCount, changeCount, countKey, lastMantra, rememberMantra, loadVariant, saveVariant, PERIOD_MIN, PERIOD_MAX, validateSetting } from './settings.js';
 import { loadFonts } from './glyphs.js';
 import { Stage } from './stage.js';
 import { fixedPose, createControls } from './camera.js';
@@ -16,6 +16,7 @@ import { buildSettings, buildPicker, roundPeriod, formatPeriod } from './ui.js';
 
 import { sheets, welcoming, previewPaused, sceneReady } from './shell.js';
 import { createQualityController } from './quality.js';
+import { createWakeLockController } from './wake-lock.js';
 
 const TAU = Math.PI * 2;
 const EFFECTS = { nectar: createNectar };
@@ -64,6 +65,7 @@ const ctx = {
       for (const part of ['lotus', 'sun', 'moon']) settings[`seat.${part}.opacity`] = settings['seat.opacity'];
     }
     settings[key] = value;
+    if (key === 'stillness') lastTime = null;
     if (key === 'phoneticsBelow' && value) settings.script = 'tibetan';
     if (key === 'script' && value === 'phonetics') settings.phoneticsBelow = false;
     if (key === 'script' || key === 'repeat' || key === 'phoneticsBelow') buildStage();
@@ -96,7 +98,7 @@ const ctx = {
     variant: v => { saveVariant(base.id, v); openMantra(base.id, true); },
     resetView: () => { poseDirty = true; snap = true; },
     count: d => addCount(d),
-    resetCount: () => { if (confirm(`Set the ${mantra.name} count back to zero?`)) { total = 0; saveCount(mantra, 0); refreshUI(); } },
+    resetCount: () => { if (confirm(`Set the ${mantra.name} count back to zero?`)) return addCount(null); },
     fullscreen: () => toggleFullscreen(),
     resetSettings: () => {
       if (!confirm(`Restore the ${mantra.name} settings to the defaults?`)) return;
@@ -122,6 +124,7 @@ function buildStage() {
   effects = [createRays({ stage }), offerings];
   for (const fx of mantra.effects || []) if (EFFECTS[fx.id]) effects.push(EFFECTS[fx.id]({ stage, mantra }));
   poseDirty = true;
+  lastTime = null;
 }
 
 function openMantra(id, force = false) {
@@ -209,12 +212,16 @@ function tap() {
   flash($('tapBtn'));
 }
 
-function addCount(d) {
-  const before = Math.floor(total / settings.malaSize);
-  total = Math.max(0, total + d);
-  saveCount(mantra, total);
-  if (d > 0 && Math.floor(total / settings.malaSize) > before) {
-    toast(`Mala ${Math.floor(total / settings.malaSize)} complete`);
+async function addCount(d) {
+  const target = mantra, malaSize = settings.malaSize;
+  const result = await changeCount(target, d);
+  // A queued update must stay with its original mantra/variant even if the
+  // viewer switches before the lock is granted. Read again to avoid painting
+  // an older result over a more recent update from another tab.
+  if (countKey(target) !== countKey(mantra)) return;
+  total = loadCount(mantra);
+  if (d > 0 && Math.floor(result.total / malaSize) > Math.floor(result.before / malaSize)) {
+    toast(`Mala ${Math.floor(result.total / malaSize)} complete`);
     navigator.vibrate?.(60);
   }
   refreshUI();
@@ -270,10 +277,12 @@ function frame(t) {
   const now = t / 1000;
   const elapsed = lastTime === null ? 0 : Math.max(0, now - lastTime);
   if (!inVR && !settings.stillness && quality.sample(elapsed, settings.quality)) resize();
-  const realDt = (welcoming ? previewPaused : settings.stillness) || sheets.isOpen || document.hidden ? 0 : Math.min(1, elapsed);
+  const realDt = (welcoming ? previewPaused : settings.stillness) || sheets.isOpen || document.hidden ? 0 : elapsed;
+  // Particle simulation takes bounded steps; recitation follows elapsed time
+  // even when the renderer cannot keep up with ten frames per second.
   const dt = Math.min(0.1, realDt);
   lastTime = now; clock += dt;
-  advance(dt);
+  advance(realDt);
   placeCamera();
   stage.update({ rot, time: clock, camera, settings, quality: quality.detail });
   renderer.getDrawingBufferSize(_size);
@@ -324,6 +333,7 @@ function toast(text) {
   toastTimer = setTimeout(() => t.classList.remove('on'), 2200);
 }
 function togglePause() {
+  lastTime = null;
   if (settings.stillness) { paused = false; ctx.set('stillness', false); }
   else paused = !paused;
   refreshUI(); updateWakeLock();
@@ -334,15 +344,10 @@ function toggleFullscreen() {
   else (e.requestFullscreen || e.webkitRequestFullscreen)?.call(e);
 }
 
-let wakeLock = null;
-async function updateWakeLock() {
+const wakeLock = createWakeLockController(navigator.wakeLock ? () => navigator.wakeLock.request('screen') : null);
+function updateWakeLock() {
   const want = !welcoming && settings?.keepAwake && !paused && document.visibilityState === 'visible';
-  try {
-    if (want && !wakeLock && navigator.wakeLock) {
-      wakeLock = await navigator.wakeLock.request('screen');
-      wakeLock.addEventListener('release', () => { wakeLock = null; });
-    } else if (!want && wakeLock) { await wakeLock.release(); wakeLock = null; }
-  } catch { wakeLock = null; }
+  return wakeLock.update(want);
 }
 
 function wireChrome() {
@@ -394,7 +399,12 @@ function wireChrome() {
     else if (k === 'r' || k === 'R') ctx.set('script', settings.script === 'tibetan' ? 'phonetics' : 'tibetan');
     else if (k === 'Escape') closeSheets();
   });
-  document.addEventListener('visibilitychange', () => { lastTime = null; updateWakeLock(); });
+  const syncCount = () => { if (mantra) { total = loadCount(mantra); refreshUI(); } };
+  window.addEventListener('storage', e => { if (mantra && (e.key === null || e.key === countKey(mantra))) syncCount(); });
+  document.addEventListener('visibilitychange', () => { lastTime = null; updateWakeLock(); syncCount(); });
+  window.addEventListener('mantras:sheetchange', () => { lastTime = null; });
+  window.addEventListener('pagehide', () => { lastTime = null; wakeLock.update(false); });
+  window.addEventListener('pageshow', () => { lastTime = null; updateWakeLock(); syncCount(); });
   window.addEventListener('resize', resize);
   window.addEventListener('hashchange', () => {
     wanted = location.hash.slice(1);

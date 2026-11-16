@@ -1,6 +1,6 @@
 // Modal sheets share a focus trap and remember nested entry points.
 export function createSheets() {
-  let active = null;
+  let active = null, wasOpen = false;
   const stack = [];
   const surfaces = [...document.querySelectorAll('.chrome, #scene, #readout, #phase, #welcome, #installInvite')];
   const focusable = sheet => [...sheet.querySelectorAll('button, a[href], input, select, summary, [tabindex="0"]')]
@@ -10,6 +10,10 @@ export function createSheets() {
         && (!closed || n === closed.querySelector(':scope > summary')) && n.getClientRects().length;
     });
   function show() {
+    if (!!active !== wasOpen) {
+      wasOpen = !!active;
+      window.dispatchEvent(new Event('mantras:sheetchange'));
+    }
     document.querySelectorAll('.sheet').forEach(s => { s.hidden = s.id !== active?.id; });
     document.body.classList.toggle('sheet-open', !!active);
     const welcome = document.body.classList.contains('welcome');
