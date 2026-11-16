@@ -55,7 +55,7 @@ export function setupInstall(sheets) {
   };
   if ('serviceWorker' in navigator && window.isSecureContext) {
     navigator.serviceWorker.register(new URL('../sw.js', import.meta.url), { updateViaCache: 'none' }).then(reg => {
-      const ready = () => status('Ready offline', 'Ready offline — all eight mantras, the visualisation and fonts are saved on this device.');
+      const ready = () => status('Ready offline', 'Ready offline — all mantras, the visualisation and fonts are saved on this device.');
       const watch = worker => {
         if (!worker) return;
         const changed = () => {

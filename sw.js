@@ -2,7 +2,7 @@
 // so an active recitation never mixes two releases or reloads without consent.
 // Run node scripts/update-precache.mjs after editing shipped files.
 // BEGIN GENERATED
-const VERSION = 'dadf02df130734b7';
+const VERSION = 'a1de5b65f7d348f9';
 const PRECACHE = [
   "app.css",
   "fonts/EBGaramond-Medium-latin-ext.woff2",
@@ -44,6 +44,7 @@ const PRECACHE = [
   "mantras/kurukulle.js",
   "mantras/shared.js",
   "mantras/vajra-guru.js",
+  "mantras/vajrakilaya.js",
   "mantras/vajrasattva.js",
   "mantras/white-tara.js",
   "vendor/three@0.184.0/build/three.core.js",

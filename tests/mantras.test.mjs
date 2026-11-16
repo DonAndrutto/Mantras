@@ -64,6 +64,25 @@ test('Kurukulle offers its two mantras around one seed', () => {
   assert.equal(withVariant(k, 'nonsense').variant, 'approach');
 });
 
+test('Vajrakilaya keeps its fifteen syllables and punctuation aligned with phonetics', () => {
+  const mantra = MANTRAS.find(m => m.id === 'vajrakilaya');
+  const ring = mantra.rings[0];
+  const expected = ['ཨོཾ་', 'བཛྲ་', 'ཀཱི་', 'ལི་', 'ཀཱི་', 'ལ་', 'ཡ་', 'སརྦ་',
+    'བིགྷྣཱན་', 'བྂ་', 'ཧཱུྂ་', 'ཕཊ།', 'ཛཿ', 'ཧཱུྂ་', 'ཨཱཿ'];
+  assert.deepEqual(tibetanSyllables(ring.text), expected);
+  for (const repeats of [1, 2, 3]) {
+    const { tibetan, phonetics, after } = ringSyllables(ring, repeats);
+    assert.equal(tibetan.length, 15 * repeats);
+    assert.equal(phonetics.length, tibetan.length);
+    for (let i = 0; i < repeats; i++) {
+      assert.deepEqual(tibetan.slice(i * 15, (i + 1) * 15), expected);
+      assert.deepEqual(phonetics.slice(i * 15 + 12, (i + 1) * 15), ['jaḥ', 'hūṃ', 'āḥ']);
+    }
+    assert.ok(after.every((gap, i) => (i + 1) % 15 === 0 || gap === 0),
+      'punctuation does not add extra gaps within a recitation');
+  }
+});
+
 test('vendored files match the import map integrity hashes', async () => {
   const html = await readFile(new URL('index.html', root), 'utf8');
   const map = JSON.parse(html.match(/<script type="importmap">([\s\S]*?)<\/script>/)[1]);

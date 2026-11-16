@@ -9,6 +9,7 @@ export const PALETTES = {
   white: { ink: '#eef3fa', hi: '#ffffff', glow: '#dce8f7', halo: '#9ab6da', accent: '#c6d7ee', muted: '#98a5b6', text: '#f2f5fa' },
   gold:  { ink: '#f2c94c', hi: '#fff2c4', glow: '#f2c94c', halo: '#d39a1d', accent: '#e9b949', muted: '#b9a374', text: '#f7eed6' },
   red:   { ink: '#f2645a', hi: '#ffd2ca', glow: '#f2645a', halo: '#c2322b', accent: '#ef6a5f', muted: '#c99a94', text: '#f8e6e3' },
+  blue:  { ink: '#183a85', hi: '#244a99', glow: '#2853a2', halo: '#193766', accent: '#86a5dc', muted: '#93a6c7', text: '#e5ecfa' },
 };
 const NIGHT = ['#182136', '#0d1424', '#0a0f1a'];
 

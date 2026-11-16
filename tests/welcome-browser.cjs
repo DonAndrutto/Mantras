@@ -130,7 +130,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       assert.match(await p.locator('#countBtn').innerText(), /33\/108/);
       assert.equal(await p.evaluate(() => document.fonts.check("100px 'Jomolhari'", 'ཧཱུྃ')), true);
       assert.equal(await p.evaluate(async () => (await caches.keys()).includes('bardo-os-unrelated')), true);
-      for (const [id, name] of [['vajrasattva','Vajrasattva'],['white-tara','White Tara'],['vajra-guru','Vajra Guru'],['kurukulle','Kurukulle'],['chenrezig','Chenrezig'],['amitabha','Amitabha'],['dzambhala','Dzambhala']]) {
+      for (const { id, name } of (await import('../mantras/index.js')).MANTRAS) {
         await p.evaluate(id => { location.hash = id; }, id);
         await p.waitForFunction(name => document.getElementById('nameBtn').textContent.includes(name), name);
       }
