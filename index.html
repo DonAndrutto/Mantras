@@ -6,6 +6,7 @@
 <title>Mantras Visualised</title>
 <meta name="description" content="Vajrayāna mantra garlands turning around their seed syllables, for recitation and visualisation.">
 <meta name="theme-color" content="#0a0f1a">
+<meta name="referrer" content="no-referrer">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -13,7 +14,8 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="preload" href="fonts/Jomolhari-Regular.ttf" as="font" type="font/ttf" crossorigin>
+<link rel="preload" href="fonts/Jomolhari-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/EBGaramond-Medium-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="app.css">
 <script type="importmap">
 {
@@ -22,12 +24,13 @@
     "three/addons/controls/OrbitControls.js": "./vendor/three@0.184.0/examples/jsm/controls/OrbitControls.js"
   },
   "integrity": {
-    "./vendor/three@0.184.0/build/three.module.js": "sha384-8FCZ1eVO6it4+pbec2aDtnTrwjWXZLJRC+MAGCIPDgsYnUrl/E0A2YlF8ioMKI/J",
-    "./vendor/three@0.184.0/build/three.core.js": "sha384-dw2ooPewaEIrAgl6oFDBmmBWCE9oW9LxRGcfwZ0hLvEprzo202wXl7vCYHRlSnOT",
-    "./vendor/three@0.184.0/examples/jsm/controls/OrbitControls.js": "sha384-4rziNxOBZKQ69i+w+f89KJ55TCYquwchVbByQwmaOeIOXdOU2PLDn3kOfXHwIJC9"
+    "./vendor/three@0.184.0/build/three.module.js": "sha384-01jB90yCWcDA53MgewWA75CnfWSd380wU53/KmiWpwl/7GScMuERycni3m4GsQ8L",
+    "./vendor/three@0.184.0/examples/jsm/controls/OrbitControls.js": "sha384-z94+wlDFm4/QrBnp2M5ddugajkyNmUE5KoLnOpne/C9nF22aw2CwJWEfg2WYNlrS"
   }
 }
 </script>
+<link rel="modulepreload" href="js/app.js">
+<link rel="modulepreload" href="vendor/three@0.184.0/build/three.module.js" integrity="sha384-01jB90yCWcDA53MgewWA75CnfWSd380wU53/KmiWpwl/7GScMuERycni3m4GsQ8L">
 <script type="module" src="js/shell.js"></script>
 </head>
 <body class="welcome">

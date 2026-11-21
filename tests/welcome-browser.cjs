@@ -195,7 +195,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await updateContext.close();
 
     // A missing required font must not report a complete offline download.
-    const failedServer = await serve(0, {overrides:new Map([['fonts/Jomolhari-Regular.ttf', {status:503,body:'unavailable'}]])});
+    const failedServer = await serve(0, {overrides:new Map([['fonts/Jomolhari-Regular.woff2', {status:503,body:'unavailable'}]])});
     servers.push(failedServer);
     const failedContext = await browser.newContext();
     const failedPage = await failedContext.newPage();

@@ -84,15 +84,15 @@ export class Stage {
           phonetic = new THREE.Mesh(pg.geometry, pm);
           phonetic.name = `phonetic-${ri}-${i}`;
           labelScale = Math.min(0.48, Math.max(0.8, g.width * 1.1) / pg.width);
-          labelOffset = g.below + 0.14 + (pg.height - pg.below) * labelScale;
-          labelBottom = labelOffset + pg.below * labelScale;
+          labelOffset = set.below + 0.14 + (latin.height - latin.below) * labelScale;
+          labelBottom = labelOffset + latin.below * labelScale;
           labelWidth = pg.width * labelScale;
           this.disposables.push(pm);
           this.group.add(phonetic);
         }
         return { mesh, material, phonetic, labelScale, labelOffset, labelBottom, labelWidth, c: centers[i] };
       });
-      const height = Math.max(...tokens.map(t => set.get(t).height));
+      const height = set.height;
       const width = Math.max(...tokens.map(t => set.get(t).width), ...items.map(it => it.labelWidth));
       const boundHeight = Math.max(height, ...items.map(it => it.labelBottom * 2));
       this.rings.push({ spec: ring, items, size, height, boundHeight, width, tibetan: syl.tibetan, phonetics: syl.phonetics });
@@ -117,8 +117,9 @@ export class Stage {
 
     this.seats = createSeats(this.group);
     this.disposables.push(this.seats);
-    this.vajra = mantra.visualization?.vajra ? createVajra(this.group) : null;
-    if (this.vajra) this.disposables.push(this.vajra);
+    // Built lazily on first enable so opening Vajrasattva without the vajra stays instant.
+    this.vajra = null;
+    this._seatShade = -1;
 
     // light: a wide halo behind the seed, a pool under the ring
     this.halo = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), softLightMaterial(this.pal.halo));
@@ -157,7 +158,7 @@ export class Stage {
 
   extent(settings) {
     const extent = this.mantraExtent(settings);
-    if (!this.vajra || !settings['vajra.enabled'] || settings['vajra.view'] === 'mantra') return extent;
+    if (!this.mantra.visualization?.vajra || !settings['vajra.enabled'] || settings['vajra.view'] === 'mantra') return extent;
     const v = vajraLayout(extent);
     if (settings['vajra.view'] === 'hub') return {
       radius: v.scale * 1.12, half: v.hubHeight * 1.12, seedTop: v.hubHeight * 1.12, fill: 0.86, angle: 12,
@@ -278,8 +279,13 @@ export class Stage {
     const ringHalf = this.rings[0] ? this.rings[0].size * this.rings[0].boundHeight * settings.ringScale * settings.letterScale / 2 : 0;
     const seedBottom = this.seed.position.y - seedEm * this.seedBelow;
     const gap = Math.max(0.025 * width, 0.12 * seedEm);
-    const v = this.vajra?.update(settings, this.mantraExtent(settings));
-    const enclosed = this.vajra && settings['vajra.enabled'];
+    const enclosed = !!this.mantra.visualization?.vajra && settings['vajra.enabled'];
+    if (enclosed && !this.vajra) {
+      this.vajra = createVajra(this.group);
+      this.disposables.push(this.vajra);
+    }
+    const v = enclosed ? this.vajra.update(settings, this.mantraExtent(settings)) : null;
+    if (!enclosed && this.vajra) this.vajra.group.visible = false;
     const seat = this.seats.update({ settings,
       top: enclosed ? -v.half - gap : Math.min(seedBottom, -ringHalf * 1.15) - gap,
       width: enclosed ? v.scale * 0.95 : width, quality });
@@ -288,10 +294,13 @@ export class Stage {
     this.seat = seat;
     const seated = seat !== null;
     const seatShade = enclosed ? 0 : (seat?.strength ?? 0);
-    su.shade.value = seatShade * 0.7;
-    for (const r of this.rings) for (const it of r.items) {
-      it.material.uniforms.shade.value = seatShade * 0.4;
-      if (it.phonetic) it.phonetic.material.uniforms.shade.value = seatShade * 0.4;
+    if (seatShade !== this._seatShade) {
+      this._seatShade = seatShade;
+      su.shade.value = seatShade * 0.7;
+      for (const r of this.rings) for (const it of r.items) {
+        it.material.uniforms.shade.value = seatShade * 0.4;
+        if (it.phonetic) it.phonetic.material.uniforms.shade.value = seatShade * 0.4;
+      }
     }
 
     this.halo.position.copy(this.seed.position);

@@ -46,19 +46,35 @@ function surface(tint, polish = 1) {
 // Combine small carvings by material, so ornamentation adds vertices rather
 // than hundreds of draw calls. Input geometries are no longer needed afterwards.
 function combine(parts) {
-  const positions = [], normals = [], indices = [];
+  let vertCount = 0, idxCount = 0;
   for (const g of parts) {
     if (!g.attributes.normal) g.computeVertexNormals();
-    const offset = positions.length / 3;
-    positions.push(...g.attributes.position.array); normals.push(...g.attributes.normal.array);
-    const index = g.index?.array || Array.from({ length: g.attributes.position.count }, (_, i) => i);
-    for (const i of index) indices.push(offset + i);
+    vertCount += g.attributes.position.count;
+    idxCount += g.index ? g.index.count : g.attributes.position.count;
+  }
+  const positions = new Float32Array(vertCount * 3);
+  const normals = new Float32Array(vertCount * 3);
+  const indices = vertCount > 65535 ? new Uint32Array(idxCount) : new Uint16Array(idxCount);
+  let vOff = 0, iOff = 0;
+  for (const g of parts) {
+    const posArr = g.attributes.position.array, normArr = g.attributes.normal.array;
+    const count = g.attributes.position.count;
+    positions.set(posArr, vOff * 3);
+    normals.set(normArr, vOff * 3);
+    if (g.index) {
+      const idxArr = g.index.array;
+      for (let i = 0; i < idxArr.length; i++) indices[iOff++] = vOff + idxArr[i];
+    } else {
+      for (let i = 0; i < count; i++) indices[iOff++] = vOff + i;
+    }
+    vOff += count;
     g.dispose();
   }
   const g = new THREE.BufferGeometry();
-  g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-  g.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
-  g.setIndex(indices); return g;
+  g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  g.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+  g.setIndex(new THREE.BufferAttribute(indices, 1));
+  return g;
 }
 
 // A swept, bevelled blade: wide in its radial plane and thin across it.

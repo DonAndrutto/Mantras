@@ -130,8 +130,8 @@ mantra's `effects` list and registered in `js/app.js`.
 | `js/effects/` | `nectar.js` (Vajrasattva), `offerings.js` (offering lights), `rays.js`, `stars.js`. |
 | `mantras/` | One file per mantra, `shared.js` (palettes, the common ring), and the list. |
 | `design/` | The original Claude Design sources. |
-| `vendor/three@0.184.0/` | three.js, byte for byte as in the World System repository (same integrity hashes). |
-| `fonts/` | Jomolhari and EB Garamond, both OFL. |
+| `vendor/three@0.184.0/` | three.js r184 (tree-shaken & minified ESM with SRI hashes in `index.html`). |
+| `fonts/` | Jomolhari (full Unicode Tibetan block WOFF2) and EB Garamond (WOFF2), both OFL. |
 | `tests/` | Data/integrity tests, settings/geometry/framing tests, optional browser checks, and local server. |
 
 ## Trying it locally

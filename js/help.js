@@ -19,26 +19,31 @@ export function createControlHelp(sheets) {
       .map(({node}) => node.getBoundingClientRect()).filter(r => r.width && r.height);
     const overlaps = (a, b) => a.left < b.right + 5 && a.right + 5 > b.left && a.top < b.bottom + 5 && a.bottom + 5 > b.top;
     const width = document.documentElement.clientWidth;
+    const height = document.documentElement.clientHeight;
     for (const { node, text, zone } of targets) {
       if (!node || node.hidden || node.closest('[hidden]')) continue;
       const r = node.getBoundingClientRect();
       if (!r.width || !r.height) continue;
       const chip = document.createElement('span');
       chip.className = 'help-chip'; chip.textContent = text; labels.append(chip);
-      const w = chip.offsetWidth;
+      const w = chip.offsetWidth, h = chip.offsetHeight;
       const x = Math.max(8, Math.min(width - w - 8, r.x + r.width / 2 - w / 2));
       const edge = zone === 'top' ? r.bottom : r.top;
-      let y = zone === 'top' ? edge + 12 : edge - 38;
-      const h = chip.offsetHeight;
-      let box = {left:x, right:x+w, top:y, bottom:y+h};
-      while ([...controls, ...occupied].some(other => overlaps(box, other))) {
-        y += zone === 'top' ? 30 : -30;
-        box = {left:x, right:x+w, top:y, bottom:y+h};
+      let y = zone === 'top' ? edge + 12 : edge - h - 12;
+      let box = { left: x, right: x + w, top: y, bottom: y + h };
+      let tries = 0;
+      while (tries++ < 16 && [...controls, ...occupied].some(other => overlaps(box, other))) {
+        y += zone === 'top' ? Math.max(30, h + 6) : -Math.max(30, h + 6);
+        box = { left: x, right: x + w, top: y, bottom: y + h };
       }
+      y = Math.max(4, Math.min(height - h - 4, y));
+      box = { left: x, right: x + w, top: y, bottom: y + h };
       occupied.push(box);
       Object.assign(chip.style, { left: `${x}px`, top: `${y}px` });
       const line = document.createElement('span'); line.className = 'help-line';
-      Object.assign(line.style, { left: `${r.x + r.width / 2}px`, top: `${zone === 'top' ? edge + 3 : y + h}px`, height: `${zone === 'top' ? y - edge - 3 : edge - y - h - 3}px` });
+      const lineTop = zone === 'top' ? edge + 3 : y + h;
+      const lineH = Math.max(0, zone === 'top' ? y - edge - 3 : edge - y - h - 3);
+      Object.assign(line.style, { left: `${r.x + r.width / 2}px`, top: `${lineTop}px`, height: `${lineH}px` });
       labels.append(line);
     }
   }

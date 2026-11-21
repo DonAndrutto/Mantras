@@ -112,3 +112,25 @@ test('wake-lock denial and synchronous failure allow a later retry', async () =>
   await controller.update(false); assert.equal(lock.released, true);
   await createWakeLockController(null).update(true);
 });
+
+test('local server rejects malformed URLs, path traversal, and dotfiles without crashing', async () => {
+  const http = await import('node:http');
+  const { serve } = await import('./serve.mjs');
+  const server = await serve(0, { overrides: new Map([['index.html', { body: 'ok' }]]) });
+  const port = server.address().port;
+  const rawStatus = path => new Promise((resolve, reject) => {
+    http.get({ host: '127.0.0.1', port, path }, res => { res.resume(); resolve(res.statusCode); }).on('error', reject);
+  });
+  try {
+    assert.equal(await rawStatus('/%ZZ'), 400);
+    assert.equal(await rawStatus('/.git/HEAD'), 404);
+    assert.equal(await rawStatus('/../etc/passwd'), 404);
+    assert.equal(await rawStatus('/..%2f..%2fetc%2fpasswd'), 404);
+    assert.equal(await rawStatus('/js/..%2f..%2f..%2fetc/passwd'), 404);
+    const ok = await fetch(`http://127.0.0.1:${port}/`);
+    assert.equal(ok.status, 200);
+    assert.equal(await ok.text(), 'ok');
+  } finally {
+    server.close();
+  }
+});

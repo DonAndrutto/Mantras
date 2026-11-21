@@ -11,7 +11,7 @@ const VERT = /* glsl */`
   varying float vAlpha;
   void main() {
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = size * scale / max(0.05, -mv.z);
+    gl_PointSize = clamp(size * scale / max(0.05, -mv.z), 1.0, 96.0);
     vAlpha = alpha;
     gl_Position = projectionMatrix * mv;
   }`;
@@ -51,7 +51,7 @@ export function createNectar({ stage }) {
   points.renderOrder = 1;
   stage.group.add(points);
 
-  let carry = 0, next = 0;
+  let carry = 0, next = 0, alive = 0;
   function spawn(src, spread) {
     for (let n = 0; n < MAX; n++) {
       const i = (next + n) % MAX;
@@ -73,6 +73,7 @@ export function createNectar({ stage }) {
       const amount = settings['fx.nectar.amount'];
       const ring = settings.ringScale;
       material.uniforms.scale.value = viewportHeight / (2 * Math.tan((fov * Math.PI) / 360));
+      if (dt <= 0) { points.visible = alive > 0; return; }
       if (on && amount > 0) {
         carry += dt * (4 + 60 * amount * amount);
         const sources = stage.sources();
@@ -81,9 +82,11 @@ export function createNectar({ stage }) {
           if (Math.random() < 0.3 || !sources.length) spawn(stage.seed.position, 0.06 * settings.seedScale);
           else spawn(sources[(Math.random() * sources.length) | 0], 0.03 * ring);
         }
+      } else {
+        carry = 0;
       }
       const floor = -1.8 * Math.max(1, ring);
-      let alive = 0;
+      alive = 0;
       for (let i = 0; i < MAX; i++) {
         if (life[i] <= 0) { alpha[i] = 0; continue; }
         alive++;

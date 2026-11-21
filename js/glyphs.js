@@ -15,7 +15,7 @@ export const FONTS = {
 export async function loadFonts() {
   await Promise.allSettled([
     document.fonts.load("100px 'Jomolhari'", 'ཧཱུྃ'),
-    document.fonts.load("500 100px 'EB Garamond'", 'OM'),
+    document.fonts.load("500 100px 'EB Garamond'", 'OM āḥ'),
   ]);
 }
 
@@ -165,22 +165,24 @@ export function makeGlyphSet(tokens, { script = 'tibetan', px = 96, radius = 0.2
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
   const glyphs = new Map(), keys = [];
   for (const t of unique) {
-    const key = [font, radius, ascent, descent, t].join('|');
+    const key = [font, radius, t].join('\0');
     keys.push(key);
     const hit = cache.get(key);
     if (hit) { cache.delete(key); cache.set(key, hit); hit.users++; glyphs.set(t, hit.glyph); continue; }
     const m = metrics.get(t);
     const left = Math.max(0, m.actualBoundingBoxLeft ?? 0);
     const right = Math.max(m.width, m.actualBoundingBoxRight ?? m.width);
-    const w = Math.ceil(pad * 2 + left + right);
-    const h = Math.ceil(pad * 2 + ascent + descent);
-    const ox = pad + left, baseline = pad + ascent;
+    const gAscent = Math.max(emA * 0.5, m.actualBoundingBoxAscent ?? px * 0.8);
+    const gDescent = Math.max(0, m.actualBoundingBoxDescent ?? px * 0.2);
+    const w = Math.max(1, Math.ceil(pad * 2 + left + right));
+    const h = Math.max(1, Math.ceil(pad * 2 + gAscent + gDescent));
+    const ox = pad + left, baseline = pad + gAscent;
 
     const inkL = m.actualBoundingBoxLeft ?? 0, inkR = m.actualBoundingBoxRight ?? m.width;
     const cx = Math.max(0, Math.floor(ox - inkL) - reach);
-    const cy = Math.max(0, Math.floor(baseline - (m.actualBoundingBoxAscent ?? ascent)) - reach);
-    const cw = Math.min(w, Math.ceil(ox + inkR) + reach) - cx;
-    const ch = Math.min(h, Math.ceil(baseline + (m.actualBoundingBoxDescent ?? descent)) + reach) - cy;
+    const cy = Math.max(0, Math.floor(baseline - (m.actualBoundingBoxAscent ?? gAscent)) - reach);
+    const cw = Math.max(1, Math.min(w, Math.ceil(ox + inkR) + reach) - cx);
+    const ch = Math.max(1, Math.min(h, Math.ceil(baseline + (m.actualBoundingBoxDescent ?? gDescent)) + reach) - cy);
 
     canvas.width = cw; canvas.height = ch;          // also clears it
     ctx.font = font;
@@ -222,13 +224,23 @@ export function makeGlyphSet(tokens, { script = 'tibetan', px = 96, radius = 0.2
     const geometry = new THREE.PlaneGeometry(w / px, h / px);
     geometry.translate((w / 2 - ax) / px, -(h / 2 - ay) / px, 0);
 
-    const glyph = { texture, geometry, width: Math.max(0.05 * px, inkL + inkR) / px, height: (ascent + descent) / px, below: (baseline + descent - ay) / px };
+    const glyph = { texture, geometry, width: Math.max(0.05 * px, inkL + inkR) / px, height: (gAscent + gDescent) / px, below: (baseline + gDescent - ay) / px };
     cache.set(key, { glyph, users: 1, texels: w * h });
     glyphs.set(t, glyph);
   }
+  const ringHeight = (ascent + descent) / px;
+  const ringBelow = (descent + (emA - emD) / 2) / px;
+  let disposed = false;
   return {
+    height: ringHeight,
+    below: ringBelow,
     get: t => glyphs.get(t),
-    dispose() { for (const k of keys) { const e = cache.get(k); if (e) e.users--; } trim(); },
+    dispose() {
+      if (disposed) return;
+      disposed = true;
+      for (const k of keys) { const e = cache.get(k); if (e && e.users > 0) e.users--; }
+      trim();
+    },
   };
 }
 

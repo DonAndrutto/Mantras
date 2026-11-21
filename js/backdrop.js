@@ -21,7 +21,7 @@ const FRAG = /* glsl */`
     float t = length(gl_FragCoord.xy - c) / length(max(c, size - c));
     vec3 col = t < s1 ? mix(c0, c1, t / s1) : mix(c1, c2, clamp((t - s1) / (s2 - s1), 0.0, 1.0));
     col = mix(col, glow, 0.05 * pulse * max(0.0, 1.0 - t / 0.55));
-    float n = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+    float n = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
     gl_FragColor = vec4(col + (n - 0.5) * grain, 1.0);
   }`;
 
@@ -55,9 +55,9 @@ export function createBackdrop({ scene }) {
         stars: [bg1, `#${new THREE.Color(bg1).lerp(new THREE.Color('#05070d'), 0.5).getHexString()}`, '#05070d', 0.35, 0.7],
         black: ['#000000', '#000000', '#000000', 0.5, 1],
       }[background] || [bg0, bg1, bg2, 0.48, 0.78];
-      u.c0.value = srgb(stops[0]); u.c1.value = srgb(stops[1]); u.c2.value = srgb(stops[2]);
+      u.c0.value.copy(srgb(stops[0])); u.c1.value.copy(srgb(stops[1])); u.c2.value.copy(srgb(stops[2]));
       u.s1.value = stops[3]; u.s2.value = stops[4];
-      u.glow.value = srgb(palette.glow);
+      u.glow.value.copy(srgb(palette.glow));
       breathes = background !== 'black';
       u.grain.value = breathes ? 0.006 : 0;
     },

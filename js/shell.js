@@ -19,7 +19,7 @@ for (const b of document.querySelectorAll('.sheet-close')) b.onclick = () => she
 $('scrim').onclick = () => sheets.close();
 window.addEventListener('keydown', e => {
   if (sheets.keydown(e)) { e.stopImmediatePropagation(); return; }
-  if (e.key === '?' && !welcoming && !e.target.closest('input, textarea, select')) {
+  if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey && !welcoming && !e.target?.closest?.('input, textarea, select')) {
     e.preventDefault(); help.open();
   }
 });
@@ -82,16 +82,20 @@ export function sceneReady() {
     b.disabled = false; b.textContent = 'Tap to explore';
   }
   $('loadStatus').textContent = 'A visual companion to your own recitation';
+  install.registerSW();
   install.settled();
 }
 function sceneFailed(error) {
   console.warn('Mantras could not start:', error);
   $('loadStatus').textContent = 'The visualisation could not start. Please reload, or try a browser with WebGL enabled.';
-  $('enterBtn').textContent = 'Reload visualisation';
-  $('enterBtn').disabled = false;
-  $('enterBtn').onclick = () => location.reload();
+  for (const b of document.querySelectorAll('#enterBtn, .guide-enter')) {
+    b.textContent = 'Reload visualisation';
+    b.disabled = false;
+    b.onclick = () => location.reload();
+  }
   $('previewPause').hidden = true;
   document.body.classList.add('scene-failed');
+  install.registerSW();
   install.settled();
 }
 // Also catches constructor errors (for example, WebGL unavailable).

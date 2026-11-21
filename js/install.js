@@ -14,7 +14,10 @@ export function setupInstall(sheets) {
   function dismiss() {
     answered = true;
     try { localStorage.setItem(ASKED, '1'); } catch { /* session-only dismissal */ }
-    if ($('installInvite').contains(document.activeElement)) $('helpBtn').focus({ preventScroll: true });
+    if ($('installInvite').contains(document.activeElement)) {
+      const target = $('helpBtn');
+      if (target && !target.closest('[inert]') && target.getClientRects().length) target.focus({ preventScroll: true });
+    }
     $('installInvite').hidden = true;
     document.body.classList.remove('has-install-invite');
   }
@@ -53,25 +56,33 @@ export function setupInstall(sheets) {
     $('offlineStatus').textContent = short;
     document.querySelectorAll('[data-offline-detail]').forEach(n => { n.textContent = detail; });
   };
-  if ('serviceWorker' in navigator && window.isSecureContext) {
-    navigator.serviceWorker.register(new URL('../sw.js', import.meta.url), { updateViaCache: 'none' }).then(reg => {
-      const ready = () => status('Ready offline', 'Ready offline — all mantras, the visualisation and fonts are saved on this device.');
-      const watch = worker => {
-        if (!worker) return;
-        const changed = () => {
-          if (worker.state === 'activated') ready();
-          if (worker.state === 'installed' && navigator.serviceWorker.controller) status('Update ready', 'An update is downloaded. Close all Mantras windows and reopen to use it. Your counts and settings will remain.');
-          if (worker.state === 'redundant' && !reg.active) status('Offline download incomplete', 'Keep this page online and reload to retry the offline download.');
+  let swRegistered = false;
+  function registerSW() {
+    if (swRegistered) return;
+    swRegistered = true;
+    if ('serviceWorker' in navigator && window.isSecureContext) {
+      navigator.serviceWorker.register(new URL('../sw.js', import.meta.url), { updateViaCache: 'none' }).then(reg => {
+        const ready = () => status('Ready offline', 'Ready offline — all mantras, the visualisation and fonts are saved on this device.');
+        const watch = worker => {
+          if (!worker) return;
+          const changed = () => {
+            if (worker.state === 'activated') ready();
+            if (worker.state === 'installed' && navigator.serviceWorker.controller) status('Update ready', 'An update is downloaded. Close all Mantras windows and reopen to use it. Your counts and settings will remain.');
+            if (worker.state === 'redundant' && !reg.active) status('Offline download incomplete', 'Keep this page online and reload to retry the offline download.');
+          };
+          worker.addEventListener('statechange', changed); changed();
         };
-        worker.addEventListener('statechange', changed); changed();
-      };
-      if (reg.active) ready();
-      watch(reg.installing || reg.waiting);
-      reg.addEventListener('updatefound', () => watch(reg.installing));
-    }).catch(() => status('Offline download unavailable', 'Offline storage could not be prepared. Check your connection and browser storage settings, then reload to retry.'));
-  } else status('Online use only', 'Offline use requires a supported browser and an HTTPS connection (or localhost for development).');
-  return { settled() {
-    settled = true;
-    clearTimeout(timer); timer = setTimeout(offer, 1800);
-  } };
+        if (reg.active) ready();
+        watch(reg.installing || reg.waiting);
+        reg.addEventListener('updatefound', () => watch(reg.installing));
+      }).catch(() => status('Offline download unavailable', 'Offline storage could not be prepared. Check your connection and browser storage settings, then reload to retry.'));
+    } else status('Online use only', 'Offline use requires a supported browser and an HTTPS connection (or localhost for development).');
+  }
+  return {
+    registerSW,
+    settled() {
+      settled = true;
+      clearTimeout(timer); timer = setTimeout(offer, 1800);
+    },
+  };
 }

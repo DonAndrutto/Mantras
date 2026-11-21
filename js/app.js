@@ -46,7 +46,13 @@ let poseDirty = true, snap = true, inVR = false;
 const taps = [];
 let wanted = location.hash.slice(1) || lastMantra() || 'vajra-guru';
 const quality = createQualityController();
-let vrAvailable = false;
+let vrAvailable = false, contextLost = false;
+const vrBgColor = new THREE.Color();
+
+function flushControls() {
+  // Consume residual orbit momentum before restoring or resetting a camera pose.
+  controls.enableDamping = false; controls.update(); controls.enableDamping = true;
+}
 
 const ctx = {
   get mantra() { return mantra; },
@@ -56,7 +62,7 @@ const ctx = {
   canFullscreen: !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen),
   set(key, value) {
     const defaults = defaultsFor(mantra);
-    if (!(key in defaults)) return;
+    if (!Object.hasOwn(defaults, key)) return;
     value = validateSetting(key, value, defaults[key]);
     if (key === 'vajra.enabled' && !mantra.visualization?.vajra) return;
     if (settings[key] === value && !(key === 'vajra.view' && settings.camera === 'free')
@@ -69,10 +75,7 @@ const ctx = {
     if (key === 'phoneticsBelow' && value) settings.script = 'tibetan';
     if (key === 'script' && value === 'phonetics') settings.phoneticsBelow = false;
     if (key === 'script' || key === 'repeat' || key === 'phoneticsBelow') buildStage();
-    if ((key === 'camera' && value === 'fixed') || key === 'vajra.view') {
-      // Consume residual orbit momentum before restoring the fixed pose.
-      controls.enableDamping = false; controls.update(); controls.enableDamping = true;
-    }
+    if ((key === 'camera' && value === 'fixed') || key === 'vajra.view') flushControls();
     if (key === 'repeat') maxRecited = Math.floor((rot * value) / TAU + 1e-9);
     if (key === 'vajra.view') settings.camera = 'fixed';
     if (['angle', 'camera', 'vajra.view', 'vajra.enabled', 'ringScale', 'seedScale', 'letterScale', 'highlight'].includes(key) || key.startsWith('seat.')) { poseDirty = true; snap = settings.camera === 'fixed'; controls.enabled = settings.camera === 'free' && !inVR; }
@@ -89,6 +92,7 @@ const ctx = {
     panel: id => openSheet(id),
     vr: () => startVR(),
     ngondro: () => {
+      flushControls();
       Object.assign(settings, { 'vajra.enabled': true, 'vajra.view': 'mantra', 'seat.lotus': true,
         'seat.moon': true, 'seat.sun': false, 'seat.color': 'white', camera: 'fixed' });
       saveSettings(mantra, settings); poseDirty = true; snap = true; controls.enabled = false;
@@ -96,13 +100,14 @@ const ctx = {
     },
     tap: () => tap(),
     variant: v => { saveVariant(base.id, v); openMantra(base.id, true); },
-    resetView: () => { poseDirty = true; snap = true; },
+    resetView: () => { flushControls(); poseDirty = true; snap = true; },
     count: d => addCount(d),
     resetCount: () => { if (confirm(`Set the ${mantra.name} count back to zero?`)) return addCount(null); },
     fullscreen: () => toggleFullscreen(),
     resetSettings: () => {
       if (!confirm(`Restore the ${mantra.name} settings to the defaults?`)) return;
       const previousRepeat = settings.repeat;
+      flushControls();
       settings = defaultsFor(mantra);
       saveSettings(mantra, settings);
       buildStage();
@@ -148,9 +153,11 @@ function openMantra(id, force = false) {
   $('nameBtn').textContent = variantLabel ? `${mantra.name} · ${variantLabel}` : mantra.name;
   document.title = welcoming ? 'Mantras Visualised' : `${mantra.name} · Mantras Visualised`;
   frontKey = '';
-  ui = buildSettings($('settingsBody'), ctx);
-  ctx.onTap?.('Tap at the start of each recitation: the garland takes your pace and brings the first syllable to the front.');
-  buildPicker($('pickerBody'), MANTRAS, mantra.id, pick => { closeSheets(true); location.hash = pick; });
+  if (!welcoming) {
+    ui = buildSettings($('settingsBody'), ctx);
+    ctx.onTap?.('Tap at the start of each recitation: the garland takes your pace and brings the first syllable to the front.');
+    buildPicker($('pickerBody'), MANTRAS, mantra.id, pick => { closeSheets(true); location.hash = pick; });
+  }
   applyLook();
   refreshUI();
   sheets.refresh();
@@ -161,7 +168,7 @@ function applyLook() {
   stars.visible = settings.background === 'stars';
   backdrop.look(settings.background, mantra.palette);
   backdrop.visible = !inVR;
-  scene.background = inVR ? new THREE.Color(settings.background === 'black' ? '#000000' : mantra.palette.bg[2]) : null;
+  scene.background = inVR ? vrBgColor.set(settings.background === 'black' ? '#000000' : mantra.palette.bg[2]) : null;
   document.body.classList.toggle('free', settings.camera === 'free');
   updateWakeLock();
 }
@@ -229,10 +236,12 @@ async function addCount(d) {
 
 function advance(dt) {
   // the period is one recitation; a garland holding the mantra n times turns once in n of them
-  if (!paused && !settings.stillness) rot += (TAU * dt) / (settings.period * settings.repeat);
-  if (correction && !settings.stillness) {
-    const step = Math.abs(correction) < 1e-4 ? correction : correction * Math.min(1, dt * 5);
-    rot += step; correction -= step;
+  if (!paused && !settings.stillness) {
+    rot += (TAU * dt) / (settings.period * settings.repeat);
+    if (correction) {
+      const step = Math.abs(correction) < 1e-4 ? correction : correction * Math.min(1, dt * 5);
+      rot += step; correction -= step;
+    }
   }
   const recited = Math.floor((rot * settings.repeat) / TAU + 1e-9);
   if (recited > maxRecited) {
@@ -244,6 +253,7 @@ function advance(dt) {
 // ── camera ───────────────────────────────────────────────────────────────
 function resize() {
   const w = window.innerWidth, h = window.innerHeight;
+  if (w <= 0 || h <= 0) return;
   renderer.setPixelRatio(Math.max(0.65, quality.scale * Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(PIXEL_BUDGET / (w * h)))));
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
@@ -274,10 +284,12 @@ function placeCamera() {
 let lastTime = null, clock = 0;
 const _size = new THREE.Vector2();
 function frame(t) {
+  if (contextLost) return;
   const now = t / 1000;
   const elapsed = lastTime === null ? 0 : Math.max(0, now - lastTime);
-  if (!inVR && !settings.stillness && quality.sample(elapsed, settings.quality)) resize();
-  const realDt = (welcoming ? previewPaused : settings.stillness) || sheets.isOpen || document.hidden ? 0 : elapsed;
+  const frozen = (welcoming ? previewPaused : settings.stillness) || sheets.isOpen || document.hidden;
+  if (!inVR && !frozen && !paused && quality.sample(elapsed, settings.quality)) resize();
+  const realDt = frozen ? 0 : elapsed;
   // Particle simulation takes bounded steps; recitation follows elapsed time
   // even when the renderer cannot keep up with ten frames per second.
   const dt = Math.min(0.1, realDt);
@@ -340,8 +352,10 @@ function togglePause() {
 }
 function toggleFullscreen() {
   const d = document, e = d.documentElement;
-  if (d.fullscreenElement || d.webkitFullscreenElement) (d.exitFullscreen || d.webkitExitFullscreen).call(d);
-  else (e.requestFullscreen || e.webkitRequestFullscreen)?.call(e);
+  const p = (d.fullscreenElement || d.webkitFullscreenElement)
+    ? (d.exitFullscreen || d.webkitExitFullscreen)?.call(d)
+    : (e.requestFullscreen || e.webkitRequestFullscreen)?.call(e);
+  p?.catch?.(() => {});
 }
 
 const wakeLock = createWakeLockController(navigator.wakeLock ? () => navigator.wakeLock.request('screen') : null);
@@ -364,26 +378,45 @@ function wireChrome() {
   $('tapBtn').onclick = tap;
   $('countBtn').onclick = () => openSheet('counter');
   for (const b of document.querySelectorAll('[data-vajra-view]')) b.onclick = () => ctx.set('vajra.view', b.dataset.vajraView);
-  for (const b of document.querySelectorAll('.sheet-close')) b.onclick = () => closeSheets();
-  $('scrim').onclick = () => closeSheets();
 
-  // a tap on the scene (not a drag) hides or shows the bars
+  // a single-finger / left-click tap on the scene (not a drag or pinch) hides or shows the bars
   let down = null, fixedDragHintShown = false;
-  canvas.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY, t: performance.now() }; });
+  const activePointers = new Set();
+  canvas.addEventListener('pointerdown', e => {
+    activePointers.add(e.pointerId);
+    if (activePointers.size > 1 || (e.pointerType === 'mouse' && e.button !== 0)) { down = null; return; }
+    down = { id: e.pointerId, x: e.clientX, y: e.clientY, t: performance.now() };
+  });
   canvas.addEventListener('pointerup', e => {
-    if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 8 && performance.now() - down.t < 350) {
-      toggleChrome();
-    }
-    if (down && settings.camera === 'fixed' && !fixedDragHintShown && Math.hypot(e.clientX - down.x, e.clientY - down.y) >= 8) {
+    activePointers.delete(e.pointerId);
+    if (!down || down.id !== e.pointerId) return;
+    const dist = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+    if (dist < 8 && performance.now() - down.t < 350) toggleChrome();
+    else if (settings.camera === 'fixed' && !fixedDragHintShown && dist >= 8) {
       fixedDragHintShown = true;
       toast('Choose Free below to drag and turn the view');
     }
     down = null;
   });
+  canvas.addEventListener('pointercancel', e => { activePointers.delete(e.pointerId); down = null; });
+
+  canvas.addEventListener('webglcontextlost', e => {
+    e.preventDefault();
+    contextLost = true;
+    lastTime = null;
+    renderer.setAnimationLoop(null);
+  });
+  canvas.addEventListener('webglcontextrestored', () => {
+    contextLost = false;
+    buildStage();
+    applyLook();
+    resize();
+    renderer.setAnimationLoop(frame);
+  });
 
   window.addEventListener('keydown', e => {
-    if (e.defaultPrevented || welcoming) return;
-    if (e.target.closest?.('input, textarea, button, a, summary, select')) return;
+    if (e.defaultPrevented || welcoming || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target?.closest?.('input, textarea, button, a, summary, select')) return;
     if (sheets.isOpen) return;
     const k = e.key;
     if (k === ' ') { e.preventDefault(); togglePause(); }
@@ -407,7 +440,7 @@ function wireChrome() {
   window.addEventListener('pageshow', () => { lastTime = null; updateWakeLock(); syncCount(); });
   window.addEventListener('resize', resize);
   window.addEventListener('hashchange', () => {
-    wanted = location.hash.slice(1);
+    wanted = location.hash.slice(1) || lastMantra() || 'vajra-guru';
     if (!welcoming) openMantra(wanted);
   });
   window.addEventListener('mantras:enter', () => {
@@ -429,7 +462,7 @@ async function wireVR() {
 }
 async function startVR() {
   if (!vrAvailable) return;
-  if (renderer.xr.isPresenting) { renderer.xr.getSession()?.end(); return; }
+  if (renderer.xr.isPresenting) { renderer.xr.getSession()?.end()?.catch?.(() => {}); return; }
   try {
     const { session, floor } = await enterVR(renderer);
     closeSheets(true); inVR = true; controls.enabled = false;

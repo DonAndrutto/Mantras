@@ -9,5 +9,5 @@ test('offline precache matches every shipped asset and its current content', asy
   assert.ok(source.includes(`const VERSION = '${version}';`), 'Run npm run precache after changing shipped files');
   const listed = JSON.parse(source.match(/const PRECACHE = (\[[\s\S]*?\]);/)[1]);
   assert.deepEqual(listed, files);
-  for (const required of ['index.html', 'js/shell.js', 'js/app.js', 'fonts/Jomolhari-Regular.ttf', 'vendor/three@0.184.0/build/three.core.js', 'mantras/vajrasattva.js']) assert.ok(files.includes(required));
+  for (const required of ['index.html', 'js/shell.js', 'js/app.js', 'fonts/Jomolhari-Regular.woff2', 'vendor/three@0.184.0/build/three.module.js', 'mantras/vajrasattva.js']) assert.ok(files.includes(required));
 });

@@ -66,14 +66,14 @@ export function createOfferings({ stage }) {
     on: false, kind: 0, t: 0, dur: 1, from: new THREE.Vector3(), to: new THREE.Vector3(), arc: new THREE.Vector3(),
     target: -2, size: 0.03, color: colors[0],
   }));
-  let carry = 0, elapsed = 0, wasOn = false, alive = 0, free = 0;
+  let carry = 0, elapsed = 0, wasOn = false, alive = 0, free = 0, lastPhaseLen = null;
   const status = { phase: 0, progress: 0, on: false };
   const _b = new THREE.Vector3(), _p = new THREE.Vector3();
 
   // a point of the seed or a turning syllable, now
   const sources = stage.sources();
   const source = i => (i < 0 ? stage.seed.position : sources[i] || stage.seed.position);
-  const pick = () => (Math.random() < 0.35 ? -1 : (Math.random() * sources.length) | 0);
+  const pick = () => (Math.random() < 0.35 || !sources.length ? -1 : (Math.random() * sources.length) | 0);
 
   function spawn(kind, reach) {
     let l = null;
@@ -116,18 +116,26 @@ export function createOfferings({ stage }) {
     status,
     update({ dt, realDt = dt, settings, viewportHeight, fov }) {
       const on = settings.lights;
-      if (on && !wasOn) elapsed = 0;          // each time they are turned on, they begin with the offering
-      wasOn = on;
       const phaseLen = settings['lights.phase'];
+      if (on && !wasOn) { elapsed = 0; lastPhaseLen = phaseLen; }
+      else if (lastPhaseLen !== null && lastPhaseLen !== phaseLen) {
+        // Keep the current phase and progress continuous when phase duration changes.
+        elapsed = (status.phase + status.progress) * phaseLen;
+        lastPhaseLen = phaseLen;
+      }
+      wasOn = on;
       if (on) elapsed += realDt;            // phases keep real time, however slowly frames come
       const phase = Math.floor(elapsed / phaseLen) % 3;
       Object.assign(status, { on, phase, progress: (elapsed % phaseLen) / phaseLen });
       material.uniforms.scale.value = viewportHeight / (2 * Math.tan((fov * Math.PI) / 360));
+      if (dt <= 0) { points.visible = alive > 0; return; }
 
       const reach = Math.max(1, settings.ringScale);
       if (on) {
         carry += dt * (6 + 70 * settings['lights.amount']);
         while (carry >= 1) { carry -= 1; spawn(phase, reach); }
+      } else {
+        carry = 0;
       }
 
       // nothing to move and nothing to send while every light is out

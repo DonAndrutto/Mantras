@@ -23,8 +23,9 @@ export function createSheets() {
       || (n.classList.contains('chrome') && document.body.classList.contains('bare')); });
     const dialog = active && document.getElementById(active.id);
     // Variant changes rebuild the settings controls while the sheet stays open.
-    if (dialog && !dialog.contains(document.activeElement)) dialog.querySelector('.sheet-close').focus({ preventScroll: true });
+    if (dialog && !dialog.contains(document.activeElement)) dialog.querySelector('.sheet-close')?.focus({ preventScroll: true });
   }
+  const canFocus = node => node && node.isConnected && !node.matches(':disabled') && !node.closest('[inert]') && node.getClientRects().length;
   return {
     get isOpen() { return !!active; },
     open(id) {
@@ -32,7 +33,7 @@ export function createSheets() {
       if (active) stack.push(active);
       active = { id, opener: document.activeElement };
       show();
-      document.getElementById(id).querySelector('.sheet-close').focus({ preventScroll: true });
+      document.getElementById(id)?.querySelector('.sheet-close')?.focus({ preventScroll: true });
     },
     close(all = false) {
       if (!active) return;
@@ -40,8 +41,12 @@ export function createSheets() {
       active = all ? null : stack.pop() || null;
       if (all) stack.length = 0;
       show();
-      const fallback = document.getElementById(document.body.classList.contains('welcome') ? 'enterBtn' : 'settingsBtn');
-      (returning?.isConnected && returning.getClientRects().length ? returning : fallback).focus({ preventScroll: true });
+      const welcome = document.body.classList.contains('welcome');
+      const fallback = document.getElementById(welcome ? 'enterBtn' : 'settingsBtn');
+      const target = canFocus(returning) ? returning
+        : canFocus(fallback) ? fallback
+        : welcome ? document.getElementById('exploreTab') : null;
+      target?.focus({ preventScroll: true });
     },
     keydown(e) {
       if (!active) return false;

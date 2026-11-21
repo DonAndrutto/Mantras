@@ -106,11 +106,17 @@ export function createSeats(parent) {
   group.name = 'seats'; lotusGroup.name = 'lotus';
   const materials = Object.fromEntries(SEATS.map(({ key }) => [key,
     new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.DoubleSide })]));
-  const sun = new THREE.Mesh(disc('#f4b05a', '#cf572c', '#9d3825'), materials.sun);
-  const moon = new THREE.Mesh(disc('#fff9e9', '#d1ccc3', '#a6aab0'), materials.moon);
-  sun.name = 'sun-disc'; moon.name = 'moon-disc';
-  group.add(lotusGroup, sun, moon); parent.add(group);
+  let sun = null, moon = null;
+  group.add(lotusGroup); parent.add(group);
   let signature = '', parts = [];
+  const ensureDisc = key => {
+    if (key === 'sun') {
+      if (!sun) { sun = new THREE.Mesh(disc('#f4b05a', '#cf572c', '#9d3825'), materials.sun); sun.name = 'sun-disc'; group.add(sun); }
+      return sun;
+    }
+    if (!moon) { moon = new THREE.Mesh(disc('#fff9e9', '#d1ccc3', '#a6aab0'), materials.moon); moon.name = 'moon-disc'; group.add(moon); }
+    return moon;
+  };
   return {
     group,
     update({ settings, top, width, quality = 'high' }) {
@@ -125,9 +131,14 @@ export function createSeats(parent) {
       }
       const discR = width * 1.08, thickness = width * 0.009;
       let y = top;
-      for (const [key, mesh] of [['moon', moon], ['sun', sun]]) {
-        mesh.visible = on[key] && materials[key].opacity > 0;
-        if (!on[key]) continue;
+      for (const key of ['moon', 'sun']) {
+        if (!on[key]) {
+          const existing = key === 'moon' ? moon : sun;
+          if (existing) existing.visible = false;
+          continue;
+        }
+        const mesh = ensureDisc(key);
+        mesh.visible = materials[key].opacity > 0;
         mesh.scale.set(discR, thickness, discR); mesh.position.y = y - thickness / 2; y -= thickness;
       }
       lotusGroup.visible = on.lotus && materials.lotus.opacity > 0;
@@ -146,7 +157,7 @@ export function createSeats(parent) {
     },
     dispose() {
       group.removeFromParent(); parts.forEach(g => g.dispose());
-      sun.geometry.dispose(); moon.geometry.dispose(); Object.values(materials).forEach(m => m.dispose());
+      sun?.geometry.dispose(); moon?.geometry.dispose(); Object.values(materials).forEach(m => m.dispose());
     },
   };
 }

@@ -24,12 +24,14 @@ export function holdRepeat(button, fn) {
   const stop = () => { clearTimeout(timer); timer = null; };
   const tick = () => { fn(Date.now() - started); timer = setTimeout(tick, 70); };
   button.addEventListener('pointerdown', e => {
-    e.preventDefault();
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    stop();
+    try { button.setPointerCapture?.(e.pointerId); } catch { /* synthetic event */ }
     started = Date.now();
     fn(0);
     timer = setTimeout(tick, 420);
   });
-  for (const t of ['pointerup', 'pointerleave', 'pointercancel']) button.addEventListener(t, stop);
+  for (const t of ['pointerup', 'pointerleave', 'pointercancel', 'lostpointercapture', 'blur']) button.addEventListener(t, stop);
   button.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fn(0); } });
 }
 
@@ -86,7 +88,11 @@ export function buildSettings(root, ctx) {
   // ── motion ─────────────────────────────────────────────────────────────
   const periodOut = el('input', { type: 'number', class: 'num', min: PERIOD_MIN, max: PERIOD_MAX, step: '0.01',
     inputmode: 'decimal', 'aria-label': 'Seconds per recitation',
-    onchange: e => { const v = Number(e.target.value); if (v > 0) ctx.set('period', roundPeriod(v)); } });
+    onchange: e => {
+      const v = Number(e.target.value);
+      if (Number.isFinite(v) && v > 0) ctx.set('period', roundPeriod(v));
+      e.target.value = ctx.settings.period.toFixed(2);
+    } });
   const periodSlider = el('input', { type: 'range', min: 0, max: 1000, step: 1, 'aria-label': 'Seconds per recitation',
     oninput: e => ctx.set('period', roundPeriod(sliderToPeriod(Number(e.target.value)))) });
   const fine = (delta, text) => {
@@ -195,7 +201,11 @@ export function buildSettings(root, ctx) {
   const total = el('span', { class: 'value' });
   const mala = el('input', { type: 'number', class: 'num', min: 1, max: 10000, step: 1, inputmode: 'numeric',
     'aria-label': 'Beads on the mala',
-    onchange: e => { const v = Math.round(Number(e.target.value)); if (v >= 1) ctx.set('malaSize', v); } });
+    onchange: e => {
+      const v = Math.round(Number(e.target.value));
+      if (Number.isFinite(v) && v >= 1) ctx.set('malaSize', v);
+      e.target.value = ctx.settings.malaSize;
+    } });
   sync(s => {
     total.textContent = ctx.counter();
     if (document.activeElement !== mala) mala.value = s.malaSize;
@@ -270,14 +280,25 @@ export function buildSettings(root, ctx) {
 }
 
 export function buildPicker(root, mantras, current, onPick) {
-  root.replaceChildren(...mantras.map(m => el('button', {
-    type: 'button', class: 'mantra', 'aria-current': m.id === current ? 'true' : null,
-    style: `--accent:${m.palette.accent}`,
-    onclick: () => onPick(m.id),
-  },
-  el('span', { class: 'seed bo', text: m.seed.text }),
-  el('span', { class: 'names' },
-    el('span', { class: 'name', text: m.name }),
-    el('span', { class: 'bo tib', text: m.tibetanName || '' }),
-    el('span', { class: 'sub', text: m.subtitle || '' })))));
+  if (root.children.length === mantras.length && root.dataset.built === '1') {
+    for (const button of root.children) {
+      if (button.dataset.mantraId === current) button.setAttribute('aria-current', 'true');
+      else button.removeAttribute('aria-current');
+    }
+    return;
+  }
+  root.dataset.built = '1';
+  root.replaceChildren(...mantras.map(m => {
+    const button = el('button', {
+      type: 'button', class: 'mantra', 'data-mantra-id': m.id, 'aria-current': m.id === current ? 'true' : null,
+      onclick: () => onPick(m.id),
+    },
+    el('span', { class: 'seed bo', text: m.seed.text }),
+    el('span', { class: 'names' },
+      el('span', { class: 'name', text: m.name }),
+      el('span', { class: 'bo tib', text: m.tibetanName || '' }),
+      el('span', { class: 'sub', text: m.subtitle || '' })));
+    button.style.setProperty('--accent', m.palette.accent);
+    return button;
+  }));
 }

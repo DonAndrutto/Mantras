@@ -2,14 +2,14 @@
 // so an active recitation never mixes two releases or reloads without consent.
 // Run node scripts/update-precache.mjs after editing shipped files.
 // BEGIN GENERATED
-const VERSION = '6e9d8426aac1820c';
+const VERSION = '1300440c44ad8690';
 const PRECACHE = [
   "app.css",
   "fonts/EBGaramond-Medium-latin-ext.woff2",
   "fonts/EBGaramond-Medium-latin.woff2",
   "fonts/EBGaramond-MediumItalic-latin-ext.woff2",
   "fonts/EBGaramond-MediumItalic-latin.woff2",
-  "fonts/Jomolhari-Regular.ttf",
+  "fonts/Jomolhari-Regular.woff2",
   "icons/apple-touch-icon.png",
   "icons/icon-192.png",
   "icons/icon-512.png",
@@ -48,7 +48,6 @@ const PRECACHE = [
   "mantras/vajrakilaya.js",
   "mantras/vajrasattva.js",
   "mantras/white-tara.js",
-  "vendor/three@0.184.0/build/three.core.js",
   "vendor/three@0.184.0/build/three.module.js",
   "vendor/three@0.184.0/examples/jsm/controls/OrbitControls.js"
 ];
@@ -56,9 +55,11 @@ const PRECACHE = [
 // Scope-isolated: Mantras must never remove Ngondro or BardoOS caches.
 const PREFIX = `mantras:${self.registration.scope}:`;
 const CACHE = PREFIX + VERSION;
+let openCache;
+const getCache = () => (openCache ||= caches.open(CACHE));
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
-    const cache = await caches.open(CACHE);
+    const cache = await getCache();
     await cache.addAll(PRECACHE.map(path => new Request(new URL(path, self.registration.scope), { cache: 'reload' })));
   })());
 });
@@ -75,7 +76,7 @@ self.addEventListener('fetch', event => {
   const scope = new URL(self.registration.scope);
   if (request.method !== 'GET' || url.origin !== scope.origin || !url.pathname.startsWith(scope.pathname)) return;
   event.respondWith((async () => {
-    const cache = await caches.open(CACHE);
+    const cache = await getCache();
     // Only the actual app entry uses the shell; missing assets are never HTML.
     const entry = url.pathname === scope.pathname || url.pathname === scope.pathname + 'index.html';
     const hit = await cache.match(entry ? new URL('index.html', scope).href : request, { ignoreSearch: true });

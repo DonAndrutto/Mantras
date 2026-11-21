@@ -106,7 +106,7 @@ export function loadSettings(mantra) {
   const prefs = record(read('mantras:prefs'));
   const s = { ...defaults };
   for (const k of Object.keys(defaults)) {
-    const value = GLOBAL.includes(k) && k in prefs ? prefs[k] : saved[k];
+    const value = GLOBAL.includes(k) && Object.hasOwn(prefs, k) ? prefs[k] : saved[k];
     s[k] = validateSetting(k, value, defaults[k]);
   }
   if (s.phoneticsBelow) s.script = 'tibetan';
