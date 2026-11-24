@@ -27,8 +27,9 @@ function paint(g, fn) {
 }
 
 // Broad shoulders, a gently folded central vein, a fine dark outline, and
-// an upturned tapered tip. Alternating tiers overlap like a painted lotus.
-function tier({ count, offset, base, length, width, y, curl }, color, detail) {
+// an upturned tapered tip. Alternating tiers overlap like a painted lotus and
+// cup upward around the rim so sun and moon discs sit deeper within the blossom.
+function tier({ count, offset, base, length, width, y, curl, cup = 0.28 }, color, detail) {
   const U = detail === 'low' ? 14 : 24, V = detail === 'low' ? 8 : 14;
   const pos = [], uv = [], idx = [];
   for (let k = 0; k < count; k++) {
@@ -36,11 +37,12 @@ function tier({ count, offset, base, length, width, y, curl }, color, detail) {
     for (let i = 0; i <= U; i++) {
       const u = i / U;
       const w = width * Math.pow(Math.sin(Math.PI * u), 0.72) * (0.82 + 0.18 * u);
-      const r = base + length * u;
+      const r = base + length * (u + cup * u * (1 - u * u));
+      const rise = curl * (0.08 * u * u + 0.92 * Math.pow(u, 4));
       for (let j = 0; j <= V; j++) {
         const v = j * 2 / V - 1;
-        const height = y - 0.10 * Math.sin(Math.PI * u) + curl * Math.pow(u, 3)
-          + 0.10 * v * v * Math.sin(Math.PI * u) + 0.035 * (1 - Math.abs(v)) * Math.sin(Math.PI * u);
+        const height = y - 0.055 * Math.sin(Math.PI * u) + rise
+          + 0.055 * v * v * Math.sin(Math.PI * u) + 0.022 * (1 - Math.abs(v)) * Math.sin(Math.PI * u);
         pos.push(Math.sin(a) * r + Math.cos(a) * v * w, height, Math.cos(a) * r - Math.sin(a) * v * w);
         uv.push(u, v);
       }
@@ -65,16 +67,16 @@ function lotus(petals, color, detail) {
   const specs = petals === 1000
     // A dense symbolic thousand-petalled seat, rather than 1,000 meshes.
     ? Array.from({ length: 9 }, (_, i) => ({ count: 24 + i * 8, offset: i % 2 / 2,
-      base: 0.30 + i * 0.055, length: 1.0 - i * 0.065, width: 0.14 - i * 0.007,
-      y: -0.27 + i * 0.022, curl: 0.15 }))
-    : Array.from({ length: petals === 16 ? 2 : 1 }, (_, i) => ({ count: petals === 16 ? 8 : petals,
-      offset: i / 2, base: 0.30 + i * 0.08, length: 1.02 - i * 0.10,
-      width: (petals === 4 ? 0.58 : 0.42) - i * 0.025, y: -0.24 + i * 0.09, curl: 0.22 - i * 0.025 }));
-  const parts = specs.map(s => tier(s, color, detail));
-  const pod = new THREE.CylinderGeometry(0.74, 0.48, 0.18, detail === 'low' ? 32 : 64);
-  pod.translate(0, -0.11, 0);
-  parts.push(paint(pod, (i, c) => c.set(pod.attributes.position.getY(i) > -0.03 ? '#dec58e' : '#a07a4e')));
-  return parts;
+      base: 0, length: 1.50 - i * 0.026, width: 0.16 - i * 0.005,
+      y: -0.26 + i * 0.017, curl: 0.40 + i * 0.004, cup: 0.28 }))
+    : petals === 16
+      ? [
+        { count: 8, offset: 0, base: 0, length: 1.50, width: 0.48, y: -0.19, curl: 0.40, cup: 0.24 },
+        { count: 8, offset: 0.5, base: 0.02, length: 1.28, width: 0.43, y: -0.10, curl: 0.41, cup: 0.32 },
+      ]
+      : [{ count: petals, offset: 0, base: 0, length: 1.40,
+        width: petals === 4 ? 0.70 : 0.48, y: -0.11, curl: 0.42, cup: 0.30 }];
+  return specs.map(s => tier(s, color, detail));
 }
 
 function disc(center, rim, side) {
@@ -151,7 +153,7 @@ export function createSeats(parent) {
           parts.forEach(g => lotusGroup.add(new THREE.Mesh(g, materials.lotus))); signature = next;
         }
         lotusGroup.scale.setScalar(discR); lotusGroup.position.y = y;
-        y -= 0.42 * discR; outer = 1.38 * discR;
+        y -= 0.30 * discR; outer = 1.52 * discR;
       }
       return { bottom: y, outer, strength };
     },

@@ -154,7 +154,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       await navigator.serviceWorker.ready;
       await caches.open('ngondro-keep');
       localStorage.setItem('mantras:count:vajra-guru', JSON.stringify({total:41}));
-      localStorage.setItem('mantras:settings:vajra-guru', JSON.stringify({faceOutward:true}));
+      localStorage.setItem('mantras:settings:vajra-guru', JSON.stringify({faceOutward:false}));
     });
     await up.waitForFunction(() => !!navigator.serviceWorker.controller);
     await up.reload(); await enter(up);
@@ -180,7 +180,7 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       await up.locator('#settingsBtn').click();
       const direction = up.getByRole('group', {name:'Syllable facing direction',exact:true});
       assert.equal(await direction.isVisible(), true, 'reopened app loads the updated settings interface');
-      assert.equal(await direction.getByRole('button', {name:'Away from seed',exact:true}).getAttribute('aria-pressed'), 'true',
+      assert.equal(await direction.getByRole('button', {name:'Toward viewer',exact:true}).getAttribute('aria-pressed'), 'true',
         'existing per-mantra orientation survives the update');
       assert.equal(await up.getByRole('group', {name:'Previous release direction',exact:true}).count(), 0);
       await up.keyboard.press('Escape');

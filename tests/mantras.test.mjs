@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { readFile, access } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { MANTRAS, withVariant } from '../mantras/index.js';
-import { tibetanSyllables, phoneticWords, ringTokens, ringSyllables } from '../js/tibetan.js';
+import { tibetanSyllables, phoneticWords, ringTokens, ringSyllables, BETWEEN } from '../js/tibetan.js';
+import { defaultsFor } from '../js/settings.js';
 
 const root = new URL('../', import.meta.url);
 
@@ -19,14 +20,25 @@ test('syllables keep their marks: tsheg, shad, visarga, terma', () => {
   assert.deepEqual(phoneticWords(' OM  AH HUNG '), ['OM', 'AH', 'HUNG']);
 });
 
-test('a garland can hold its mantra twice or three times over', () => {
+test('a garland can hold its mantra twice or three times over without extra gap between recitations', () => {
   const ring = { text: 'ཨོཾ་ཏཱ་རེ་ཏུཏྟཱ་རེ་ཏུ་རེ་སྭཱཧཱ།', phonetics: 'om tā re tuttā re tu re svāhā' };
   const once = ringSyllables(ring, 1), thrice = ringSyllables(ring, 3);
+  assert.equal(BETWEEN, 0);
   assert.equal(thrice.tibetan.length, 3 * once.tibetan.length);
   assert.deepEqual(thrice.tibetan.slice(8, 16), once.tibetan);
   assert.deepEqual(thrice.phonetics.slice(16), once.phonetics);
   assert.deepEqual(once.after, once.after.map(() => 0));
-  assert.deepEqual(thrice.after.map((a, i) => (a ? i : -1)).filter(i => i >= 0), [7, 15, 23]);
+  assert.deepEqual(thrice.after, thrice.after.map(() => 0));
+});
+
+test('default repeat follows mantra length: short 3x, medium 2x, long 1x', () => {
+  const byKey = Object.fromEntries(
+    MANTRAS.flatMap(b => (b.variants?.length ? b.variants.map(v => withVariant(b, v.id)) : [b]))
+      .map(m => [m.variant ? `${m.id}/${m.variant}` : m.id, defaultsFor(m).repeat]),
+  );
+  for (const id of ['chenrezig', 'amitabha', 'green-tara', 'dzambhala']) assert.equal(byKey[id], 3, id);
+  for (const id of ['vajra-guru', 'kurukulle/approach', 'vajrakilaya']) assert.equal(byKey[id], 2, id);
+  for (const id of ['white-tara', 'kurukulle/accomplishment', 'vajrasattva']) assert.equal(byKey[id], 1, id);
 });
 
 // every mantra, and every variant of one, as the page sees it

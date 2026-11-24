@@ -18,13 +18,13 @@ no build dependencies, with everything (three.js, fonts) served from this reposi
 | `#chenrezig` | Om Mani Padme Hum, ཨོཾ་མ་ཎི་པདྨེ་ཧཱུྃ, around ཧྲཱི༔ |
 | `#amitabha` | Om Ami Dewa Hrih, ༀ་ཨ་མི་དྷེ་ཝ་ཧྲཱི༔, around ཧྲཱི༔ |
 
-Every mantra moves the same way: the syllables stand upright facing you from any
-angle, in the fixed view and in the free camera, by default. Choose **Away from
-seed** under **Settings → Practice → Script → Syllable facing direction** to turn
-each syllable outward around the seed as the garland rotates. Latin labels turn with their
-Tibetan syllables; the seed still faces you. This option is saved per mantra and
-can be switched back to **Toward viewer** at any time. Script is expanded by
-default, with the direction buttons first and touch targets at least 44 px high.
+Every mantra moves the same way: by default, the syllables stay upright facing outward
+away from the central seed syllable as the garland turns (**Away from seed**). Choose
+**Toward viewer** under **Settings → Practice → Script → Syllable facing direction** to
+face the syllables toward you from any angle, in the fixed view and in the free camera.
+Latin labels turn with their Tibetan syllables; the seed still faces you. This option is
+saved per mantra and can be switched at any time. Script is expanded by default, with the
+direction buttons first and touch targets at least 44 px high.
 
 ## Using it
 
@@ -50,8 +50,10 @@ default, with the direction buttons first and touch targets at least 44 px high.
   write the ring itself in phonetics. Phonetics are one entry per Tibetan syllable (IAST,
   after the Ngöndro app's transliteration).
 - **Seat**: lotus, sun disc and moon disc, any of them, stacked in that order. The discs are
-  paper thin and a little wider than the garland, which turns above them within their rim;
-  the lotus has 4, 8, 16 or a symbolic thousand-petalled form with dense overlapping tiers. Rose and white palettes are available. The seed hovers just above the uppermost seat.
+  paper thin and a little wider than the garland, nestled deeper inside the cupped lotus
+  petals; the lotus appears cleanly on its own (4, 8, 16 or a symbolic thousand-petalled form
+  with dense overlapping tiers). Rose and white palettes are available. The seed hovers just
+  above the uppermost seat.
 - **Translucency**: Settings → Visualization → Lotus & discs offers Solid / Translucent.
   One opacity slider controls all enabled seats; *Adjust separately* exposes each seat's
   opacity. Zero-opacity surfaces do not hide the letters. Settings are kept per mantra.
@@ -65,15 +67,16 @@ default, with the direction buttons first and touch targets at least 44 px high.
   The seat supports the lower tip of the vajra. The upright orientation and enlarged
   scale are presentation choices; see the source note below.
 - **Garland**: the mantra once, twice or three times round the same garland (Settings → Practice →
-  Garland & direction); held more than once it runs closer together. The speed stays per recitation, and
-  every recitation is counted.
+  Garland & direction). By default, longer mantras appear once, medium-length mantras twice,
+  and short mantras three times. Held more than once it runs closer together; the speed stays
+  per recitation, and every recitation is counted.
 - **Offering lights**: lights rise from the seed and syllables to the buddhas, return and
   dissolve into the seed and the mantra, then go down to beings in saṃsāra — round and round,
   each phase 10 s, 30 s or a minute. The phase shows under the top bar.
 - **Syllables keep their marks**: tsheg, shad, visarga and terma marks stay with the syllable
   they are written with.
 - **Even spacing**: every two neighbouring syllables have the same air between their ink,
-  whatever their widths (a little more between one recitation and the next).
+  whatever their widths, keeping a steady rhythm from the end of one recitation into the next.
 - **Light & effects**: glow (×0–×3, fine steps; drawn from the letter's own outline, so it stays
   smooth at any zoom), front highlight, the syllables' opacity, the
   seed's opacity, how much syllables passing in front veil the seed (even when faint), light

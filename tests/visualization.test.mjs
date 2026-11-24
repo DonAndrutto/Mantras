@@ -21,17 +21,17 @@ const { fixedPose } = await import('../js/camera.js');
 const storage = new Map();
 globalThis.localStorage = { getItem: k => storage.get(k) ?? null, setItem: (k, v) => storage.set(k, v) };
 
-test('outward facing is opt-in, validated and saved per mantra', () => {
+test('outward facing is the default, validated and saved per mantra', () => {
   storage.clear();
-  assert.equal(loadSettings(vajrasattva).faceOutward, false);
-  const s = { ...defaultsFor(vajrasattva), faceOutward: true };
-  saveSettings(vajrasattva, s);
   assert.equal(loadSettings(vajrasattva).faceOutward, true);
-  assert.equal(loadSettings(tara).faceOutward, false);
-  saveSettings(vajrasattva, { ...s, faceOutward: false });
+  const s = { ...defaultsFor(vajrasattva), faceOutward: false };
+  saveSettings(vajrasattva, s);
   assert.equal(loadSettings(vajrasattva).faceOutward, false);
-  storage.set('mantras:settings:vajrasattva', JSON.stringify({ faceOutward: 'true' }));
-  assert.equal(loadSettings(vajrasattva).faceOutward, false);
+  assert.equal(loadSettings(tara).faceOutward, true);
+  saveSettings(vajrasattva, { ...s, faceOutward: true });
+  assert.equal(loadSettings(vajrasattva).faceOutward, true);
+  storage.set('mantras:settings:vajrasattva', JSON.stringify({ faceOutward: 'false' }));
+  assert.equal(loadSettings(vajrasattva).faceOutward, true);
 });
 
 test('outward facing stays separate for Kurukulle variants without changing saved counts', () => {
@@ -40,13 +40,13 @@ test('outward facing stays separate for Kurukulle variants without changing save
   const accomplishment = withVariant(kurukulle, 'accomplishment');
   storage.set('mantras:count:kurukulle/approach', '{"total":108}');
   storage.set('mantras:count:kurukulle/accomplishment', '{"total":217}');
-  saveSettings(approach, { ...defaultsFor(approach), faceOutward: true });
-  assert.equal(loadSettings(approach).faceOutward, true);
-  assert.equal(loadSettings(accomplishment).faceOutward, false);
-  saveSettings(accomplishment, { ...defaultsFor(accomplishment), faceOutward: true });
-  saveSettings(approach, defaultsFor(approach));
+  saveSettings(approach, { ...defaultsFor(approach), faceOutward: false });
   assert.equal(loadSettings(approach).faceOutward, false);
   assert.equal(loadSettings(accomplishment).faceOutward, true);
+  saveSettings(accomplishment, { ...defaultsFor(accomplishment), faceOutward: false });
+  saveSettings(approach, defaultsFor(approach));
+  assert.equal(loadSettings(approach).faceOutward, true);
+  assert.equal(loadSettings(accomplishment).faceOutward, false);
   assert.equal(loadCount(approach), 108);
   assert.equal(loadCount(accomplishment), 217);
 });
@@ -78,11 +78,26 @@ test('old preferences and counts survive; malformed saved settings cannot corrup
 test('all petal forms and separate translucency render finite geometry without invisible occlusion', () => {
   const scene = new THREE.Group(), seats = createSeats(scene), s = defaultsFor(vajrasattva);
   Object.assign(s, { 'seat.lotus': true, 'seat.sun': true, 'seat.moon': true });
+  const expectedTiers = { 4: 1, 8: 1, 16: 2, 1000: 9 };
   for (const count of [4, 8, 16, 1000]) for (const quality of ['low', 'high']) {
     s['seat.petals'] = count;
     const bounds = seats.update({ settings: s, top: -0.2, width: 1, quality });
     assert.ok(bounds.bottom < -0.2 && bounds.outer > 1);
-    scene.traverse(n => { if (n.geometry) assert.ok(n.geometry.attributes.position.array.every(Number.isFinite)); });
+    const lotusGroup = scene.getObjectByName('lotus');
+    assert.equal(lotusGroup.children.length, expectedTiers[count], `${count} petals has only petal tiers, no central cone`);
+    let maxInside = -Infinity, maxTip = -Infinity;
+    lotusGroup.traverse(n => {
+      if (!n.geometry) return;
+      const p = n.geometry.attributes.position;
+      assert.ok(p.array.every(Number.isFinite));
+      for (let i = 0; i < p.count; i++) {
+        const y = p.getY(i), r = Math.hypot(p.getX(i), p.getZ(i));
+        if (r <= 1.005) maxInside = Math.max(maxInside, y);
+        maxTip = Math.max(maxTip, y);
+      }
+    });
+    assert.ok(maxInside < -0.02, `${count}/${quality}: petals stay below the sun and moon discs inside their rim`);
+    assert.ok(maxTip > 0.2, `${count}/${quality}: outer petals cup upward above the discs so discs sit deeper inside`);
   }
   Object.assign(s, { 'seat.appearance': 'translucent', 'seat.opacity': 0.25 });
   seats.update({ settings: s, top: 0, width: 1 });

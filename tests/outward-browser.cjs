@@ -207,10 +207,14 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await page.getByRole('button', { name: 'By tapping', exact: true }).click();
     await close();
     const persistedCount = await count();
+    await scriptPanel();
+    await page.getByRole('button', { name: 'Toward viewer', exact: true }).click();
+    await page.waitForFunction(() => !outwardFrame.settings.faceOutward);
+    await close();
     await switchMantra('green-tara');
-    assert.equal(await page.evaluate(() => outwardFrame.settings.faceOutward), false);
-    await switchMantra('vajrasattva');
     assert.equal(await page.evaluate(() => outwardFrame.settings.faceOutward), true);
+    await switchMantra('vajrasattva');
+    assert.equal(await page.evaluate(() => outwardFrame.settings.faceOutward), false);
     assert.equal(await count(), persistedCount);
 
     // A cold offline launch retains the per-mantra choice and downloaded code.
@@ -220,11 +224,11 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
     await context.setOffline(true);
     page = await context.newPage(); watch(page);
     await page.goto(url + '?installed=1#vajrasattva'); await enter();
-    assert.equal(await page.evaluate(() => outwardFrame.settings.faceOutward), true);
-    assert.equal(await count(), persistedCount);
-    await scriptPanel(); assert.equal((await outward().getAttribute('aria-pressed') === 'true'), true); await close();
-    await switchMantra('green-tara');
     assert.equal(await page.evaluate(() => outwardFrame.settings.faceOutward), false);
+    assert.equal(await count(), persistedCount);
+    await scriptPanel(); assert.equal((await outward().getAttribute('aria-pressed') === 'true'), false); await close();
+    await switchMantra('green-tara');
+    assert.equal(await page.evaluate(() => outwardFrame.settings.faceOutward), true);
     assert.deepEqual(errors, []);
     console.log('Outward integration passed: ellipse, both spins/orders/scripts/cameras, labels, live/paused state, per-mantra persistence and offline cold launch.');
   } finally { await browser?.close(); server.close(); }

@@ -4,7 +4,19 @@
 // A mantra with variants (Kurukulle) keeps settings and count per variant;
 // `mantra` here is always the mantra with its variant applied.
 
+import { tibetanSyllables } from './tibetan.js';
+
 export const PERIOD_MIN = 0.5, PERIOD_MAX = 180;
+
+// Default number of times a mantra appears round the garland, by length:
+// short mantras three times, medium-length mantras twice, longer mantras once.
+export function defaultRepeat(mantra) {
+  if (mantra.motion?.repeat) return mantra.motion.repeat;
+  const count = mantra.rings?.[0] ? tibetanSyllables(mantra.rings[0].text).length : 0;
+  if (count > 0 && count <= 8) return 3;
+  if (count > 0 && count <= 15) return 2;
+  return 1;
+}
 
 export function defaultsFor(mantra) {
   const d = {
@@ -17,7 +29,7 @@ export function defaultsFor(mantra) {
     angle: mantra.view.angle,          // degrees above the ring's plane
     camera: 'fixed',                   // 'fixed' | 'free'
     phoneticsBelow: false,             // Latin labels travel beneath Tibetan syllables
-    faceOutward: false,                // ring syllables face away from the seed
+    faceOutward: true,                 // ring syllables face away from the seed
     script: 'tibetan',                 // 'tibetan' | 'phonetics'
     glow: 1,
     highlight: 1,
@@ -38,7 +50,7 @@ export function defaultsFor(mantra) {
     'vajra.enabled': false,
     'vajra.view': 'mantra',
     'vajra.opacity': 0.55,
-    repeat: 1,                         // the mantra 1, 2 or 3 times round the garland
+    repeat: defaultRepeat(mantra),     // the mantra 1, 2 or 3 times round the garland
     readout: false,                    // the front syllable's phonetics at the side
     rays: 0,
     lights: false,                     // offering lights: up, back, down

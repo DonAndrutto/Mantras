@@ -21,9 +21,9 @@ export function ringTokens(ring, script) {
   return tibetanSyllables(ring.text);
 }
 
-// The air between one recitation of the mantra and the next, when the
-// garland holds it more than once, in em.
-export const BETWEEN = 0.6;
+// Extra air between one recitation of the mantra and the next, in em.
+// Zero keeps a steady rhythm across the end and beginning of the mantra.
+export const BETWEEN = 0;
 
 // The syllables of a ring holding its mantra `times` times over: Tibetan,
 // phonetics (one per syllable; the Tibetan stands in where they are missing),

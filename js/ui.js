@@ -166,7 +166,7 @@ export function buildSettings(root, ctx) {
   );
   const orientation = el('div', { class: 'orientation-control', role: 'group',
     'aria-label': 'Syllable facing direction', 'aria-describedby': 'orientation-hint' },
-    segmented('faceOutward', 'Syllable facing direction', [[false, 'Toward viewer'], [true, 'Away from seed']]),
+    segmented('faceOutward', 'Syllable facing direction', [[true, 'Away from seed'], [false, 'Toward viewer']]),
     el('p', { id: 'orientation-hint', class: 'hint', text: 'Away from seed: syllables stay upright and face outward from the central seed as the garland turns. Latin phonetics face the same way. The central seed always faces you. Saved for this mantra.' }),
   );
   const script = section('Script',

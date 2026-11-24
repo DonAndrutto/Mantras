@@ -32,16 +32,18 @@ const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
       if(!label || !r.phonetics[i]) return false;
       const t=it.mesh.position.clone().project(sample.camera);
       const p=label.position.clone().project(sample.camera);
-      return Math.abs(t.x-p.x)<1e-6 && p.y<t.y
+      const delta=label.position.clone().sub(it.mesh.position);
+      const aligned=sample.settings.faceOutward
+        ? Math.abs(delta.x)+Math.abs(delta.z)<1e-6 && delta.y<0
+        : Math.abs(t.x-p.x)<1e-6 && p.y<t.y;
+      return aligned
         && label.material.uniforms.mixHi===it.material.uniforms.mixHi
         && label.scale.x<it.mesh.scale.x
         && Number.isFinite(p.x+p.y+p.z);
     })));
+    assert.equal(await page.evaluate(()=>sample.settings.faceOutward),true,'Away from seed is the default');
     assert.equal(await verifyPairs(),true);
     await page.locator('#settingsBtn').click();
-    const outward = page.getByRole('button', {name:'Away from seed', exact:true});
-    await outward.click();
-    await page.waitForFunction(()=>sample.settings.faceOutward);
     assert.equal(await page.evaluate(async()=>{
       const THREE = await import('three');
       const {stage, settings, camera} = sample;

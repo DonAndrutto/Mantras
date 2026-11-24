@@ -2,7 +2,7 @@
 // the light around them. Units are garland radii; the ring lies in the XZ
 // plane around the origin and the default viewer stands on +Z.
 //
-// Syllables face the viewer by default, or face outward around the seed when
+// Syllables face outward around the seed by default, or face the viewer when
 // selected. The seed always faces the viewer. A syllable at angle φ stands at
 // (sin φ, 0, cos φ), so
 // φ = 0 is the front and φ grows counter-clockwise seen from above.
@@ -20,7 +20,7 @@ const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 // and the letters give way only once they would otherwise touch.
 // Every two neighbours have the same air between their ink, whatever their
 // widths: what is left of the ring once the letters are placed, shared out
-// evenly (with a little more between one recitation and the next).
+// evenly around the full circle.
 function ringLayout(ring, tokens, after, set, script, own = tokens.length) {
   const ink = tokens.map(t => set.get(t).width);
   const sum = a => a.reduce((x, y) => x + y, 0);
